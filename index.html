@@ -360,6 +360,11 @@ html:not(.locked) #lock{display:none}
 #lock input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:8px;border:1px solid #2c3b56;background:#0b1220;color:#fff;font-size:16px;outline:none}
 #lock input:focus{border-color:#2962ff}
 #lock button{width:100%;margin-top:10px;padding:11px;border:0;border-radius:8px;background:#2962ff;color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+#lock .lk-js{display:none}
+html.js #lock .lk-js{display:block}
+#lock .lk-nojs{font-size:13px;line-height:1.55;color:#c7d0de;visibility:hidden;animation:lkshow 0s 1.5s forwards}
+html.js #lock .lk-nojs{display:none}
+@keyframes lkshow{to{visibility:visible}}
 #lock .lk-err{min-height:18px;font-size:12px;color:#f23645;margin-top:8px}
 #lock.shake .lk{animation:lkshake .35s}
 @keyframes lkshake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
@@ -371,9 +376,12 @@ html:not(.locked) #lock{display:none}
     <div class="lk-logo">R</div>
     <h1>VN-STOCK RADAR</h1>
     <div class="lk-by">By Mai Xuân Tiến</div>
-    <input type="password" id="lockPw" placeholder="Nhập mật khẩu" autocomplete="current-password" autofocus>
-    <button type="submit">Mở</button>
-    <div class="lk-err" id="lockErr"></div>
+    <div class="lk-js">
+      <input type="password" id="lockPw" placeholder="Nhập mật khẩu" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>
+      <button type="submit">Mở</button>
+      <div class="lk-err" id="lockErr"></div>
+    </div>
+    <div class="lk-nojs">Trang này phải mở bằng <b>Chrome</b> hoặc <b>Safari</b>.<br>Nếu đang xem trong Zalo, Messenger, email hoặc phần “xem trước tệp”, hãy chọn <b>⋯ → Mở bằng trình duyệt</b>.<br><br>Cách dễ nhất: mở link<br><a href="https://xuantienmai89.github.io/vn-stock-radar/" style="color:#5b8cff;font-weight:700">xuantienmai89.github.io/vn-stock-radar</a></div>
   </form>
 </div>
 
@@ -381,7 +389,7 @@ html:not(.locked) #lock{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v2.7">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v2.7.1">By Mai Xuân Tiến</div></div>
   </div>
   <div class="indices" id="indices" title="Bấm để mở biểu đồ chỉ số"></div>
   <div class="bh" id="breadthH"></div>
@@ -2667,11 +2675,15 @@ function unlockApp(){
   init();
 }
 (function lockGate(){
+  document.documentElement.classList.add('js');
   const f = document.getElementById('lockForm'), pw = document.getElementById('lockPw'), err = document.getElementById('lockErr');
   setTimeout(() => pw.focus(), 50);
   f.addEventListener('submit', async e => {
     e.preventDefault();
-    const h = await sha256hex(LOCK.salt + pw.value);
+    // chuẩn hóa: bỏ khoảng trắng thừa, đổi số toàn-độ-rộng (bàn phím CJK) về số thường
+    const v = (pw.value || '').replace(/[\uFF10-\uFF19]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\s+/g, '');
+    let h = '';
+    try { h = await sha256hex(LOCK.salt + v); } catch (x) { err.textContent = 'Trình duyệt này không hỗ trợ — hãy mở bằng Chrome/Safari'; return; }
     if (h === LOCK.hash) { pw.value = ''; unlockApp(); return; }
     err.textContent = 'Sai mật khẩu'; pw.select();
     const box = document.getElementById('lock'); box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
