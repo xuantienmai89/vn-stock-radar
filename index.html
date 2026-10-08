@@ -176,7 +176,7 @@ body.resizing iframe{pointer-events:none}
 .sct span{font-family:var(--mono);font-size:10.5px}
 
 .table-wrap{flex:1;min-height:0;overflow:auto;border-top:1px solid var(--line)}
-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1230px;font-size:12px}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1130px;font-size:12px}
 thead th{position:sticky;top:0;z-index:3;background:var(--bg1);color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:7px 7px;border-bottom:1px solid var(--line2);cursor:pointer;user-select:none;white-space:nowrap}
 thead th:hover{color:var(--text)}
 thead th.num{text-align:right}
@@ -323,7 +323,7 @@ textarea.note:focus{border-color:var(--accent)}
   .chart-bar{gap:6px;padding:5px 8px}
   .chart-hint,#btnFs,#btnMax{display:none}
   #chartName{flex-basis:100%;order:9}
-  table{min-width:1100px}
+  table{min-width:1000px}
   thead th,td{padding:6px 7px}
   .chips .chip{padding:4px 8px;font-size:11.5px}
   #btnFilt{display:inline-flex;gap:4px;align-items:center}
@@ -356,7 +356,7 @@ textarea.note:focus{border-color:var(--accent)}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub">Vietnam Equity Market Intelligence · v2.5</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v2.6">By Mai Xuân Tiến</div></div>
   </div>
   <div class="indices" id="indices" title="Bấm để mở biểu đồ chỉ số"></div>
   <div class="bh" id="breadthH"></div>
@@ -448,7 +448,6 @@ textarea.note:focus{border-color:var(--accent)}
           <th data-k="volume" class="num">Volume</th>
           <th data-k="volRatio" class="num" title="Volume / Average Volume 20">Vol/Avg20</th>
           <th data-k="rs" class="num" title="RS Rating 1–99 (percentile)">RS</th>
-          <th data-k="trendScore">Trend</th>
           <th data-k="wyRank" title="Tín hiệu Wyckoff/VSA nổi bật nhất (port AFL ORION + Loc_TichLuy)">Wyckoff</th>
           <th data-k="icScore" class="num" title="Ichimoku 5 bước: Ao Sen trên Mây · TK>KJ · Chikou sạch · giá>KJ · giá>DG65">Ichi</th>
           <th data-k="pe" class="num">P/E</th>
@@ -1634,7 +1633,6 @@ function renderTable(){
       <td class="num">${fmtVol(o.volume)}</td>
       <td class="num ${isNum(o.volRatio) && o.volRatio >= 1.5 ? 'hot' : ''}">${isNum(o.volRatio) ? o.volRatio.toFixed(2) + 'x' : '—'}</td>
       <td class="num"><span class="pill ${rsCls(o.rs)}" title="${esc(o.rsSource || 'Không có dữ liệu')}">${isNum(o.rs) ? o.rs : '—'}</span></td>
-      <td><span class="trd ${o.trendCls}">${o.trendIcon} ${esc(o.trend)}</span></td>
       <td>${o.wy ? `<span class="wy" title="${esc(wyTip(o))}">${esc(o.wy.label || '·')}${o.wy.warn.length ? `<span class="wn">⚠${esc(o.wy.warn.join(','))}</span>` : ''}</span>` : '<span class="dim">—</span>'}</td>
       <td class="num">${o.ic && isNum(o.ic.score) ? `<span class="ic ic${o.ic.score}" title="${esc(icTip(o))}">${o.ic.score}/5${o.ic.dkb ? '★' : ''}</span>` : '<span class="dim">—</span>'}</td>
       <td class="num">${fmtX(o.pe)}</td>
