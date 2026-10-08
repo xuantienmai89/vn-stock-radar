@@ -1,0 +1,2611 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121722">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VN Radar">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%232962ff'/%3E%3Cpath d='M12 44 L24 30 L33 37 L50 18' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>VN-Stock Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#0b0f14; --bg1:#121722; --bg2:#1e222d; --bg3:#262c39; --hover:#232938;
+  --line:#2a303b; --line2:#353c4a;
+  --text:#f3f4f6; --muted:#9ca3af; --dim:#6b7280;
+  --ceil:#d000ff; --up:#00b06f; --ref:#f5a623; --down:#f23645; --floor:#00b8d9;
+  --accent:#2962ff; --star:#f5c518;
+  --mono:'JetBrains Mono',ui-monospace,Consolas,'Courier New',monospace;
+  --side:40%;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-family:var(--mono);color:var(--muted);white-space:nowrap}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:none}
+.live.on i{background:var(--up);animation:pulse 1.3s infinite}
+.live.eod i{background:var(--floor)}
+.live.load i{background:var(--ref);animation:pulse .6s infinite}
+.live.err i{background:var(--down)}
+.uni{background:var(--bg0);border:1px solid var(--line2);border-radius:3px;padding:5px 4px;font-size:12px;outline:none;max-width:118px}
+.uni:focus{border-color:var(--accent)}
+.progress{height:2px;background:var(--line);position:relative;overflow:hidden}
+.progress i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);transition:width .25s}
+@keyframes flu{from{background:rgba(0,176,111,.5)}to{background:var(--bg2)}}
+@keyframes fld{from{background:rgba(242,54,69,.5)}to{background:var(--bg2)}}
+td.fl-up{animation:flu 1.4s ease-out}
+td.fl-dn{animation:fld 1.4s ease-out}
+.sct b{max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.chips .grp{font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;width:74px;flex:none;align-self:center;cursor:pointer;user-select:none}
+.chips .grp:hover{color:var(--text)}
+.chips .row.col .chip{display:none}
+.chips .row.col .chip.on{display:inline-flex}
+.chips .chip{padding:2px 7px;font-size:11px}
+.chips .row{display:flex;flex-wrap:wrap;gap:5px;width:100%}
+.chip.w.on{background:rgba(0,184,217,.16);border-color:var(--floor)}
+.chip.i.on{background:rgba(245,166,35,.16);border-color:var(--ref)}
+.chip.warn{color:#fca5a5}
+.wy{font-size:11px;font-weight:600;color:var(--floor);white-space:nowrap}
+.wy .wn{color:var(--down);font-weight:700;margin-left:3px}
+.ic{display:inline-block;min-width:30px;text-align:center;border-radius:2px;padding:0 4px;font-weight:700;font-family:var(--mono);font-size:11px}
+.ic5{background:rgba(0,176,111,.28);color:#3ff0a6}.ic4{background:rgba(0,176,111,.15);color:var(--up)}.ic3{background:rgba(245,166,35,.13);color:var(--ref)}.ic2,.ic1,.ic0{background:rgba(242,54,69,.13);color:var(--down)}
+.wi{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:11.5px;margin-bottom:6px}
+.wi b{color:var(--muted);font-weight:600;white-space:nowrap}
+.wi span{font-family:var(--mono);font-size:11px}
+#btnIchi.on{background:var(--ref);border-color:var(--ref);color:#000}
+.idx.ex{background:#17202e}
+.idx.ex .in{color:var(--floor)}
+.panel.ov{grid-template-columns:1fr 1.45fr .85fr}
+.decomp{display:grid;grid-template-columns:1fr auto auto;gap:2px 10px;font-size:12px;margin:2px 0 6px}
+.decomp span:nth-child(3n+2),.decomp span:nth-child(3n){font-family:var(--mono);text-align:right}
+.decomp .tot{border-top:1px solid var(--line2);padding-top:2px;font-weight:700}
+.kd{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kd .mini td{padding:2px 4px}
+.mini th.srt{cursor:pointer}.mini th.srt:hover{color:var(--text)}
+.mini th.on{color:var(--accent)}
+.mini td.lbl{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adv input[type=text]{background:var(--bg0);border:1px solid var(--line2);border-radius:3px;padding:3px 6px;font-size:12px;outline:none;width:190px;font-family:var(--mono);text-transform:uppercase}
+.adv input[type=text]:focus{border-color:var(--accent)}
+html,body{margin:0;height:100%}
+body{background:var(--bg0);color:var(--text);font:13px/1.45 Inter,Roboto,Arial,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)} .dim{color:var(--dim)}
+.ceil{color:var(--ceil)!important}.up{color:var(--up)!important}.ref{color:var(--ref)!important}.down{color:var(--down)!important}.floor{color:var(--floor)!important}
+.btn{background:var(--bg3);border:1px solid var(--line2);border-radius:3px;padding:5px 9px;cursor:pointer;font-size:12px;white-space:nowrap;transition:background .12s,border-color .12s}
+.btn:hover{background:#2f3646;border-color:#4a5263}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#3d6bff}
+.btn.sm{padding:3px 7px;font-size:11px}
+.tag{display:inline-block;font-size:9.5px;font-weight:600;letter-spacing:.05em;border:1px solid var(--line2);border-radius:2px;padding:0 4px;color:var(--muted);vertical-align:middle}
+.tag.warn{color:var(--ref);border-color:rgba(245,166,35,.5)}
+
+/* ================= HEADER ================= */
+.top{height:64px;display:flex;align-items:center;gap:16px;padding:0 14px;background:var(--bg1);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;flex:none}
+.logo{width:30px;height:30px;border-radius:3px;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:700}
+.title{font-weight:700;letter-spacing:.1em;font-size:14px}
+.sub{font-size:10.5px;color:var(--muted);letter-spacing:.02em}
+.indices{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden;flex:none}
+.idx{display:flex;flex-direction:column;align-items:flex-start;gap:0;background:var(--bg2);border:none;padding:4px 10px;cursor:pointer;min-width:104px;text-align:left}
+.idx:hover{background:var(--hover)}
+.idx.on{box-shadow:inset 0 -2px 0 var(--accent)}
+.idx .in{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em}
+.idx .iv{font-family:var(--mono);font-size:13px;font-weight:600}
+.idx .ic{font-family:var(--mono);font-size:10.5px}
+.idx .ivol{font-family:var(--mono);font-size:9.5px;color:var(--dim)}
+.bh{display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1 1 220px;max-width:340px}
+.bh-row{font-family:var(--mono);font-size:11px;display:flex;gap:8px;flex-wrap:wrap;white-space:nowrap}
+.bar{display:flex;height:5px;border-radius:2px;overflow:hidden;background:var(--line)}
+.bar span{display:block;height:100%}
+.session{display:flex;flex-direction:column;gap:3px;margin-left:auto;align-items:flex-end;flex:none}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:1px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid currentColor}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.live::before{animation:pulse 1.3s infinite}
+@keyframes pulse{50%{opacity:.2}}
+#sessCount{font-size:10.5px;font-family:var(--mono);color:var(--muted)}
+.clock{display:flex;flex-direction:column;align-items:flex-end;flex:none}
+#clockTime{font-family:var(--mono);font-size:17px;font-weight:600;letter-spacing:.03em}
+#clockDate{font-size:10.5px;color:var(--muted)}
+
+/* ================= LAYOUT ================= */
+.layout{display:grid;grid-template-columns:var(--side) 5px 1fr;height:calc(100vh - 64px)}
+.side{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--bg2)}
+.gutter{background:var(--line);cursor:col-resize;position:relative}
+.gutter:hover,.gutter.drag{background:var(--accent)}
+.gutter::after{content:"⋮";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--dim);font-size:12px}
+body.resizing{cursor:col-resize;user-select:none}
+body.resizing iframe{pointer-events:none}
+.work{display:flex;flex-direction:column;min-height:0;min-width:0}
+
+/* ================= SIDEBAR ================= */
+.sec-h{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--dim);text-transform:uppercase}
+.toolbar{display:flex;gap:6px;padding:9px 10px 7px;align-items:center}
+.search{position:relative;flex:1;min-width:0}
+.search input{width:100%;background:var(--bg0);border:1px solid var(--line2);border-radius:3px;padding:6px 28px 6px 26px;outline:none}
+.search input:focus{border-color:var(--accent)}
+.search .ico{position:absolute;left:9px;top:6px;color:var(--dim);pointer-events:none}
+.search .kbd{position:absolute;right:7px;top:7px;font-size:9.5px;color:var(--dim);border:1px solid var(--line2);border-radius:2px;padding:0 4px}
+.suggest{position:absolute;left:0;right:0;top:34px;z-index:40;background:var(--bg3);border:1px solid var(--line2);border-radius:3px;list-style:none;margin:0;padding:3px 0;max-height:300px;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+.suggest li{display:flex;gap:10px;align-items:center;padding:5px 10px;cursor:pointer}
+.suggest li.act,.suggest li:hover{background:#323a4b}
+.suggest .st{font-weight:700;width:50px}
+.suggest .sn{flex:1;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu{position:relative}
+.menu-pop{position:absolute;right:0;top:30px;z-index:40;background:var(--bg3);border:1px solid var(--line2);border-radius:3px;min-width:200px;padding:4px 0;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+.menu-pop button{display:block;width:100%;text-align:left;background:none;border:none;padding:6px 12px;cursor:pointer;font-size:12px}
+.menu-pop button:hover{background:#323a4b}
+
+.chips{display:flex;flex-direction:column;gap:5px;padding:0 10px 7px}
+.chip{border:1px solid var(--line2);background:var(--bg1);border-radius:3px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--muted);display:inline-flex;align-items:center;gap:5px;transition:all .12s}
+.chip:hover{color:var(--text);border-color:#4a5263}
+.chip.on{background:rgba(41,98,255,.16);border-color:var(--accent);color:#fff}
+.chip .cnt{font-family:var(--mono);font-size:10px;opacity:.7}
+.chip .h{font-size:8.5px;color:var(--ref);font-weight:700}
+
+.adv{margin:0 10px 7px;border:1px solid var(--line);border-radius:3px;background:var(--bg1)}
+.adv summary{cursor:pointer;padding:5px 9px;font-size:11.5px;color:var(--muted);user-select:none;list-style:none;display:flex;gap:6px;align-items:center}
+.adv summary::-webkit-details-marker{display:none}
+.adv summary::before{content:"▸";font-size:9px;transition:transform .12s}
+.adv[open] summary::before{transform:rotate(90deg)}
+.adv-body{padding:2px 9px 9px;display:flex;flex-direction:column;gap:7px}
+.adv-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.adv-row .lb{font-size:10px;color:var(--dim);width:52px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.adv select,.adv input[type=number]{background:var(--bg0);border:1px solid var(--line2);border-radius:3px;padding:3px 6px;font-size:12px;outline:none}
+.adv input[type=number]{width:80px}
+.adv select:focus,.adv input:focus{border-color:var(--accent)}
+.adv label.ck{display:flex;gap:5px;align-items:center;font-size:12px;cursor:pointer}
+
+.active{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:6px 10px;border-top:1px solid var(--line);background:var(--bg1)}
+.mode{font-family:var(--mono);font-size:10.5px;font-weight:700;border:1px solid var(--ref);background:transparent;color:var(--ref);border-radius:2px;padding:1px 6px;cursor:pointer}
+.af{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:rgba(41,98,255,.12);border:1px solid rgba(41,98,255,.45);border-radius:2px;padding:1px 3px 1px 6px;color:#c7d3ff}
+.af button{background:none;border:none;color:var(--muted);cursor:pointer;padding:0 3px;font-size:12px;line-height:1}
+.af button:hover{color:var(--down)}
+.af-count{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+.sectors{display:flex;gap:5px;overflow-x:auto;padding:6px 10px;border-top:1px solid var(--line);scrollbar-width:thin}
+.sct{flex:none;border:1px solid var(--line2);border-radius:3px;padding:3px 8px;cursor:pointer;font-size:11px;display:flex;flex-direction:column;line-height:1.25;min-width:84px}
+.sct:hover{border-color:#4a5263}
+.sct.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.sct b{font-weight:600;white-space:nowrap}
+.sct span{font-family:var(--mono);font-size:10.5px}
+
+.table-wrap{flex:1;min-height:0;overflow:auto;border-top:1px solid var(--line)}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1230px;font-size:12px}
+thead th{position:sticky;top:0;z-index:3;background:var(--bg1);color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:7px 7px;border-bottom:1px solid var(--line2);cursor:pointer;user-select:none;white-space:nowrap}
+thead th:hover{color:var(--text)}
+thead th.num{text-align:right}
+thead th .ar{font-size:8.5px;margin-left:3px;color:var(--accent)}
+td{padding:5px 7px;white-space:nowrap;border-bottom:1px solid var(--line);background:var(--bg2)}
+td.num{text-align:right;font-family:var(--mono);font-size:11.5px}
+.stk0{position:sticky;left:0;z-index:2;width:28px}
+.stk1{position:sticky;left:28px;z-index:2;box-shadow:1px 0 0 var(--line)}
+thead th.stk0,thead th.stk1{z-index:4}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--hover)}
+tbody tr.sel td{background:#1b2440}
+tbody tr.sel td.stk0{box-shadow:inset 3px 0 0 var(--accent)}
+.star{background:none;border:none;cursor:pointer;color:var(--dim);font-size:14px;padding:0;line-height:1}
+.star:hover,.star.on{color:var(--star)}
+.tk{font-weight:700;letter-spacing:.02em}
+.exs{font-size:9px;color:var(--dim);margin-left:4px}
+.c-co{max-width:150px;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.c-sec{max-width:110px;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.hot{color:#ffb020!important;font-weight:600}
+.pill{display:inline-block;min-width:28px;text-align:center;border-radius:2px;padding:0 4px;font-weight:600}
+.g-exc{background:rgba(0,176,111,.28);color:#3ff0a6}
+.g-str{background:rgba(0,176,111,.16);color:var(--up)}
+.g-pos{background:rgba(0,184,217,.14);color:var(--floor)}
+.g-neu{background:rgba(245,166,35,.13);color:var(--ref)}
+.g-wk{background:rgba(242,54,69,.14);color:var(--down)}
+.trd{font-size:11px;font-weight:600}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.side-foot{padding:5px 10px;font-size:10.5px;color:var(--dim);border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;background:var(--bg1)}
+
+/* ================= WORKSPACE ================= */
+.chart-panel{flex:0 0 70%;display:flex;flex-direction:column;min-height:0;border-bottom:1px solid var(--line)}
+.chart-bar{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg1);border-bottom:1px solid var(--line);flex-wrap:wrap}
+#chartTicker{font-weight:700;font-size:15px;letter-spacing:.03em}
+#chartName{color:var(--muted);font-size:12px;flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs{display:flex;border:1px solid var(--line2);border-radius:3px;overflow:hidden;margin-left:auto}
+.tabs button{background:var(--bg0);border:none;padding:3px 9px;font-size:11.5px;cursor:pointer;color:var(--muted)}
+.tabs button.on{background:var(--accent);color:#fff}
+.chart-hint{font-size:10px;color:var(--dim);width:100%}
+.chart-body{position:relative;flex:1;min-height:0;background:#0d1119}
+#chart-frame,#simCanvas{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#fff}
+#simCanvas{background:#0d1119}
+.chart-loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:12px;background:#0d1119;pointer-events:none;transition:opacity .25s}
+.chart-loading.off{opacity:0}
+.chart-body:fullscreen{background:#0d1119}
+/* Phóng to biểu đồ trong dashboard */
+.work.max .chart-panel{flex:1 1 100%}
+.work.max .panel{display:none}
+body.chart-max .layout{grid-template-columns:1fr}
+body.chart-max .work{grid-column:1/-1}
+body.chart-max .side,body.chart-max .gutter{display:none}
+#btnMax.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.panel{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:1.05fr 1.1fr .95fr;gap:1px;background:var(--line)}
+.pcol{background:var(--bg2);padding:9px 12px;min-width:0;overflow:auto}
+.pcol .sec-h{margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.head-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.head-line .ct{font-size:18px;font-weight:700}
+.head-line .px{margin-left:auto;font-family:var(--mono);font-size:17px;font-weight:600}
+.head-line .px small{font-size:12px;margin-left:5px}
+.kv{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.kv>div{background:var(--bg1);padding:5px 8px}
+.kv .l{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kv .v{font-family:var(--mono);font-size:13px;font-weight:600}
+.rng{position:relative;height:5px;border-radius:2px;background:linear-gradient(90deg,var(--down),var(--ref),var(--up));margin:10px 0 5px}
+.rng i{position:absolute;top:-4px;width:3px;height:13px;background:#fff;border-radius:1px;transform:translateX(-50%)}
+.rng-lb{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.score-big{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.score-big .n{font-family:var(--mono);font-size:28px;font-weight:700}
+.score-big .d{font-family:var(--mono);color:var(--dim)}
+.comp{display:grid;grid-template-columns:118px 1fr 34px;gap:6px;align-items:center;font-size:11px;margin:3px 0}
+.comp .cb{height:6px;background:var(--line);border-radius:2px;overflow:hidden}
+.comp .cb i{display:block;height:100%;background:var(--accent)}
+.comp .cv{font-family:var(--mono);text-align:right}
+.sig{display:inline-block;margin:0 4px 4px 0;font-size:10.5px;padding:1px 7px;border-radius:2px;background:rgba(41,98,255,.13);border:1px solid rgba(41,98,255,.45);color:#c7d3ff}
+.links{display:flex;flex-direction:column;gap:5px}
+.links .btn{text-align:left}
+textarea.note{width:100%;min-height:72px;resize:vertical;background:var(--bg0);border:1px solid var(--line2);border-radius:3px;padding:6px;font-size:12px;outline:none;margin-top:6px}
+textarea.note:focus{border-color:var(--accent)}
+.mini{width:100%;border-collapse:collapse;font-size:11.5px;min-width:0}
+.mini th{position:static;font-size:9.5px;padding:3px 5px;cursor:default;background:none}
+.mini td{padding:3px 5px;background:none}
+.mini tr.click{cursor:pointer}
+.mini tr.click:hover td{background:var(--hover)}
+
+#toast{position:fixed;right:14px;bottom:14px;z-index:99;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--bg3);border:1px solid var(--line2);border-left:3px solid var(--accent);padding:7px 11px;border-radius:3px;max-width:380px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);animation:tin .18s}
+.toast.err{border-left-color:var(--down)}.toast.ok{border-left-color:var(--up)}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#363d4c;border-radius:5px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+
+@media (max-width:1450px){ .idx .ivol{display:none} .idx{min-width:92px;padding:4px 8px} }
+@media (max-width:1400px){ .bh{display:none} }
+@media (max-width:1250px){ .panel,.panel.ov{grid-template-columns:1fr 1fr} .panel .pcol:last-child{grid-column:span 2} }
+.bh{min-width:0}
+.bh .sec-h{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bh-row{flex-wrap:nowrap;overflow:hidden}
+.mnav{display:none}
+#btnFilt{display:none}
+.modal{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:16px}
+.modal .box{background:var(--bg2);border:1px solid var(--line2);border-radius:6px;max-width:420px;width:100%;padding:16px;max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 8px;font-size:15px}
+.modal .qr{background:#fff;padding:10px;border-radius:4px;display:grid;place-items:center;margin:10px auto;width:max-content}
+.modal textarea{width:100%;height:64px;background:var(--bg0);border:1px solid var(--line2);border-radius:3px;font:11px var(--mono);padding:6px;color:var(--text);resize:none}
+.modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+/* ===== Máy tính bảng ngang / laptop nhỏ ===== */
+@media (max-width:1180px) and (min-width:981px){
+  :root{--side:46%}
+  .clock #clockDate{display:none}
+  .indices .idx{min-width:84px;padding:4px 7px}
+}
+/* ===== Điện thoại & máy tính bảng dọc: 1 màn hình 1 chức năng + thanh điều hướng dưới ===== */
+@media (max-width:980px){
+  html,body{height:100%}
+  body{overflow:hidden;overscroll-behavior:none}
+  .top{height:auto;flex-wrap:wrap;padding:6px 10px calc(6px) 10px;gap:6px 10px;padding-top:max(6px, env(safe-area-inset-top))}
+  .brand .sub{display:none}
+  .brand .logo{width:26px;height:26px}
+  .indices{order:5;width:100%;overflow-x:auto;scrollbar-width:none}
+  .indices::-webkit-scrollbar{display:none}
+  .idx{flex:1 0 auto;min-width:96px}
+  .bh{display:none!important}
+  .session{margin-left:auto;align-items:flex-end}
+  .session #sessCount{display:none}
+  .clock{display:none}
+  .layout{display:block;height:calc(100dvh - var(--hdr, 130px) - 58px - env(safe-area-inset-bottom))}
+  .gutter{display:none}
+  .side,.work{height:100%}
+  .side{border:none}
+  body:not(.mv-radar) .side{display:none}
+  body.mv-radar .work{display:none}
+  body.mv-chart .panel{display:none}
+  body.mv-chart .chart-panel{flex:1 1 100%;height:100%;border:none}
+  body.mv-ana .chart-panel,body.mv-mkt .chart-panel{display:none}
+  body.mv-ana .panel,body.mv-mkt .panel{flex:1 1 100%;height:100%;overflow:auto;-webkit-overflow-scrolling:touch}
+  .panel,.panel.ov{grid-template-columns:1fr}
+  .panel .pcol:last-child{grid-column:auto}
+  .pcol{overflow:visible}
+  .toolbar{flex-wrap:wrap}
+  .search{flex-basis:100%}
+  .search input{font-size:16px}          /* tránh iOS tự phóng to khi gõ */
+  .chart-bar{gap:6px;padding:5px 8px}
+  .chart-hint,#btnFs,#btnMax{display:none}
+  #chartName{flex-basis:100%;order:9}
+  table{min-width:1100px}
+  thead th,td{padding:6px 7px}
+  .chips .chip{padding:4px 8px;font-size:11.5px}
+  #btnFilt{display:inline-flex;gap:4px;align-items:center}
+  #btnFilt.has{border-color:var(--accent);color:#fff}
+  body:not(.filt-open) #chips,body:not(.filt-open) #advBox,body:not(.filt-open) #sectors{display:none}
+  body.filt-open .side{overflow:auto}
+  body.filt-open .table-wrap{flex:none;min-height:70vh}
+  .side-foot{display:none}
+  .toolbar .btn{padding:5px 8px}
+  .toolbar #btnImport .lb,.toolbar #btnExport .lb{display:none}
+  .brand .title{font-size:13px;letter-spacing:.06em}
+  .session{flex-direction:row;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .session .live{font-size:10px}
+  .idx{padding:3px 8px}
+  .idx .ivol{display:none}
+  .active{padding:5px 10px}
+  .mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;height:calc(58px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--bg1);border-top:1px solid var(--line2)}
+  .mnav button{flex:1;background:none;border:none;color:var(--muted);font-size:10.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .mnav button b{font-size:19px;line-height:1.1;font-weight:400}
+  .mnav button.on{color:#fff;box-shadow:inset 0 2px 0 var(--accent)}
+  .mnav button .mt{max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  #toast{bottom:calc(66px + env(safe-area-inset-bottom));right:10px;left:10px}
+  .toast{max-width:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ======================= HEADER ======================= -->
+<header class="top">
+  <div class="brand">
+    <div class="logo">R</div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub">Vietnam Equity Market Intelligence · v2.5</div></div>
+  </div>
+  <div class="indices" id="indices" title="Bấm để mở biểu đồ chỉ số"></div>
+  <div class="bh" id="breadthH"></div>
+  <div class="session">
+    <span id="sessBadge" class="badge">—</span>
+    <span id="sessCount">—</span>
+    <span class="live" id="liveStat" title="Trạng thái dữ liệu"><i></i><b>—</b></span>
+  </div>
+  <div class="clock"><div id="clockTime">--:--:--</div><div id="clockDate"></div></div>
+</header>
+
+<main class="layout" id="layout">
+  <!-- ======================= MARKET RADAR ======================= -->
+  <aside class="side">
+    <div class="progress" id="prog" hidden><i></i></div>
+    <div class="toolbar">
+      <div class="search">
+        <span class="ico">⌕</span>
+        <input id="search" type="text" placeholder="Search ticker / company / sector..." autocomplete="off" spellcheck="false">
+        <span class="kbd">/</span>
+        <ul class="suggest" id="suggest" hidden></ul>
+      </div>
+      <select class="uni" id="uniSel" title="Phạm vi quét (Universe) — dữ liệu thật">
+        <option value="HOSE">HOSE · Live</option>
+        <option value="VN30">VN30 · Live</option>
+        <option value="HOSE_HNX">HOSE+HNX · Live</option>
+        <option value="ALL">3 sàn · Live</option>
+        <option value="DEMO">Demo offline</option>
+      </select>
+      <button class="btn" id="btnRefresh" title="Cập nhật bảng giá ngay">⟳</button>
+      <button class="btn" id="btnFilt" title="Mở/đóng bộ lọc">Lọc ▾</button>
+      <button class="btn primary" id="btnImport" title="Nhập file dữ liệu EOD (.csv/.xlsx) – hoặc kéo-thả file vào dashboard">⇪<span class="lb"> Import</span></button>
+      <button class="btn" id="btnExport" title="Xuất danh sách đang lọc ra CSV (mở được bằng Excel)">⇩<span class="lb"> Export</span></button>
+      <div class="menu">
+        <button class="btn" id="btnMenu" title="Thêm">⋯</button>
+        <div class="menu-pop" id="menuPop" hidden>
+          <button id="btnTemplate">⎘ Tải file CSV mẫu (đúng cấu trúc cột)</button>
+          <button id="btnExportWl">★ Xuất riêng Watchlist</button>
+          <button id="btnDemo">↺ Dùng Demo Dataset (offline)</button>
+          <button id="btnSync">📲 Chuyển Watchlist/ghi chú sang thiết bị khác (QR)</button>
+          <button id="btnResetCache">⟲ Tải lại toàn bộ dữ liệu (xóa cache)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chips" id="chips"></div>
+
+    <details class="adv" id="advBox">
+      <summary>Multi-criteria Builder · Scope · Presets</summary>
+      <div class="adv-body">
+        <div class="adv-row">
+          <span class="lb">Scope</span>
+          <select id="s-ex"><option value="">Mọi sàn</option><option>HOSE</option><option>HNX</option><option>UPCOM</option></select>
+          <select id="s-sec"><option value="">Mọi ngành</option></select>
+          <select id="s-liq" title="Lọc thanh khoản: giá trị giao dịch trung bình 20 phiên">
+            <option value="">Mọi thanh khoản</option><option value="1">GTGD TB20 ≥ 1 tỷ</option><option value="5">GTGD TB20 ≥ 5 tỷ</option>
+            <option value="10">GTGD TB20 ≥ 10 tỷ</option><option value="50">GTGD TB20 ≥ 50 tỷ</option>
+          </select>
+          <label class="ck"><input type="checkbox" id="s-wl"> ★ Chỉ Watchlist</label>
+        </div>
+        <div class="adv-row">
+          <span class="lb">Rule</span>
+          <select id="r-f"></select>
+          <select id="r-op"><option value=">">&gt;</option><option value=">=">≥</option><option value="<">&lt;</option><option value="<=">≤</option><option value="=">=</option></select>
+          <input id="r-v" type="number" step="any" placeholder="giá trị">
+          <button class="btn sm primary" id="r-add">+ Add rule</button>
+        </div>
+        <div class="adv-row" id="presets"><span class="lb">Preset</span></div>
+        <div class="adv-row">
+          <span class="lb">Nhóm Vin</span>
+          <input id="vinIn" type="text" spellcheck="false" placeholder="VIC,VHM,VRE,VPL" title="Danh sách mã loại trừ khi tính VNI ex-Vin (cách nhau dấu phẩy). Enter để áp dụng.">
+          <span class="dim" style="font-size:10.5px">loại trừ khi tính VNI ex-Vin</span>
+        </div>
+      </div>
+    </details>
+
+    <div class="active" id="active"></div>
+    <div class="sectors" id="sectors" title="Sector Heat – xếp theo Radar Score trung bình ngành. Bấm để lọc ngành."></div>
+
+    <div class="table-wrap" id="tableWrap">
+      <table>
+        <thead><tr id="thead">
+          <th data-k="w" class="stk0" title="Watchlist">★</th>
+          <th data-k="ticker" class="stk1">Ticker</th>
+          <th data-k="company">Company</th>
+          <th data-k="sector">Sector</th>
+          <th data-k="price" class="num">Price</th>
+          <th data-k="changePct" class="num">Chg %</th>
+          <th data-k="volume" class="num">Volume</th>
+          <th data-k="volRatio" class="num" title="Volume / Average Volume 20">Vol/Avg20</th>
+          <th data-k="rs" class="num" title="RS Rating 1–99 (percentile)">RS</th>
+          <th data-k="trendScore">Trend</th>
+          <th data-k="wyRank" title="Tín hiệu Wyckoff/VSA nổi bật nhất (port AFL ORION + Loc_TichLuy)">Wyckoff</th>
+          <th data-k="icScore" class="num" title="Ichimoku 5 bước: Ao Sen trên Mây · TK>KJ · Chikou sạch · giá>KJ · giá>DG65">Ichi</th>
+          <th data-k="pe" class="num">P/E</th>
+          <th data-k="pb" class="num">P/B</th>
+          <th data-k="roe" class="num">ROE</th>
+          <th data-k="score" class="num" title="Radar Score 0–100">Score</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" hidden>Không có mã nào thỏa bộ lọc hiện tại.</div>
+    </div>
+    <div class="side-foot"><span id="footInfo">—</span><span>/ tìm · Esc xóa · ↑↓ chuyển mã</span></div>
+  </aside>
+
+  <div class="gutter" id="gutter" title="Kéo để đổi độ rộng · double-click để về 40%"></div>
+
+  <!-- ======================= WORKSPACE ======================= -->
+  <section class="work">
+    <div class="chart-panel">
+      <div class="chart-bar">
+        <span id="chartTicker">VNINDEX</span>
+        <span id="chartName">VN-Index (HOSE)</span>
+        <div class="tabs" id="srcTabs">
+          <button data-src="vs" class="on" title="Biểu đồ kỹ thuật đầy đủ (TradingView engine) – đổi mã tự động">Vietstock Chart</button>
+          <button data-src="fa" title="Trang mã FireAnt: chart + chỉ số cơ bản + tin tức/thảo luận – đổi mã tự động">FireAnt Hồ sơ</button>
+          <button data-src="sim" title="Biểu đồ nội bộ: nến ngày thật từ VPS khi Live, mô phỏng khi Demo">Nội bộ</button>
+        </div>
+        <button class="btn sm" id="btnReload" title="Tải lại biểu đồ">↻</button>
+        <button class="btn sm" id="btnMax" title="Phóng to biểu đồ trong dashboard (phím F)">⤢ Phóng to</button>
+        <button class="btn sm" id="btnIchi" title="Lớp Ichimoku 9·17·26·26 + dao găm 65/129 trên biểu đồ Nội bộ">Ichimoku</button>
+        <button class="btn sm" id="btnFs" title="Toàn màn hình (Esc để thoát)">⛶</button>
+        <button class="btn sm" id="btnNewTab" title="Mở nguồn hiện tại ở tab mới (dự phòng)">↗</button>
+        <div class="chart-hint" id="chartHint"></div>
+      </div>
+      <div class="chart-body" id="chartBody">
+        <iframe id="chart-frame" src="https://stockchart.vietstock.vn/?stockcode=VNINDEX" width="100%" height="100%" frameborder="0" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer-when-downgrade" title="Biểu đồ cổ phiếu"></iframe>
+        <div class="chart-loading" id="chartLoading">Đang tải biểu đồ…</div>
+        <canvas id="simCanvas" hidden></canvas>
+      </div>
+    </div>
+    <div class="panel" id="panel"></div>
+  </section>
+</main>
+
+<nav class="mnav" id="mnav">
+  <button data-mv="radar" class="on"><b>☰</b><span class="mt">Radar</span></button>
+  <button data-mv="chart"><b>📈</b><span class="mt" id="mvChartLbl">Biểu đồ</span></button>
+  <button data-mv="ana"><b>🔎</b><span class="mt" id="mvAnaLbl">Phân tích</span></button>
+  <button data-mv="mkt"><b>🌐</b><span class="mt">Thị trường</span></button>
+</nav>
+
+<div id="toast"></div>
+<input type="file" id="fileInput" accept=".csv,.txt,.tsv,.xlsx,.xls" hidden>
+
+<script>
+'use strict';
+/* =========================================================================
+   0. DEMO DATASET — SỐ LIỆU MINH HỌA, KHÔNG PHẢI GIÁ/BCTC THỰC TẾ
+   Thứ tự cột của DEMO_ROWS:
+   ticker, exchange, sector, company, price(nghìn đ), changePct(%), volume, avgVol20,
+   rsSeed(chỉ dùng để sinh return demo), marketCap(tỷ đ), pe, pb, eps(đ), roe(%),
+   debtEquity(lần, null = ngân hàng/không áp dụng), npatGrowth(% LNST quý YoY),
+   high52, low52, ma50, range20(% biên độ 20 phiên), maxDownVol10
+   ========================================================================= */
+const DEMO_KEYS = ['ticker','exchange','sector','company','price','changePct','volume','avgVol20','rsSeed','marketCap','pe','pb','eps','roe','debtEquity','npatGrowth','high52','low52','ma50','range20','maxDownVol10'];
+const DEMO_ROWS = [
+ ['FPT','HOSE','Công nghệ','CTCP FPT',118.5,2.15,9.8e6,6.1e6,88,175000,19.8,5.1,5980,28.5,0.45,21.3,121,98,112,7.5,5.2e6],
+ ['VCB','HOSE','Ngân hàng','Vietcombank',63.2,0.48,3.1e6,3.4e6,62,528000,14.2,2.3,4450,17.2,null,8.1,70,56,62.5,6.8,3.8e6],
+ ['BID','HOSE','Ngân hàng','BIDV',41.8,-0.71,4.2e6,4.5e6,48,293000,11.5,1.7,3630,15.6,null,6.4,47,37,42.6,9.2,4.9e6],
+ ['CTG','HOSE','Ngân hàng','VietinBank',44.3,1.14,8.9e6,7.2e6,74,238000,8.9,1.4,4980,17.9,null,18.6,45.6,34,42.1,8.4,6.0e6],
+ ['TCB','HOSE','Ngân hàng','Techcombank',32.6,3.65,28e6,15e6,86,230000,9.6,1.3,3400,16.1,null,22.4,32.9,22.5,29.8,11,14e6],
+ ['MBB','HOSE','Ngân hàng','MB Bank',26.9,1.89,24e6,19e6,79,164000,7.4,1.4,3630,21.3,null,15.2,27.4,21,25.6,9.6,16e6],
+ ['ACB','HOSE','Ngân hàng','ACB',25.4,0.40,6.5e6,8.1e6,55,113000,7.8,1.4,3260,20.4,null,4.2,27.8,23.1,25.1,5.4,7.9e6],
+ ['VPB','HOSE','Ngân hàng','VPBank',19.7,-1.25,15e6,18e6,41,156000,10.4,1.1,1890,11.2,null,-6.5,23,17.5,20.3,12,20e6],
+ ['STB','HOSE','Ngân hàng','Sacombank',41.6,0.97,11e6,13e6,76,78400,8.3,1.4,5010,17.5,null,24,43,31,40.5,8.6,12e6],
+ ['HDB','HOSE','Ngân hàng','HDBank',27.3,1.11,9.2e6,8.0e6,77,95400,6.9,1.5,3960,24.6,null,26,28,20,26.4,7.4,8.5e6],
+ ['SHB','HOSE','Ngân hàng','SHB',13.4,0.75,32e6,38e6,64,54200,6.1,0.9,2200,15.3,null,13,14.2,10.5,13.1,6.6,40e6],
+ ['HPG','HOSE','Thép','Tập đoàn Hòa Phát',28.4,2.53,42e6,26e6,81,181000,13.6,1.6,2090,12.4,0.62,34.8,29.1,22,26.9,10.5,22e6],
+ ['HSG','HOSE','Thép','Tôn Hoa Sen',18.6,3.05,22e6,12e6,72,11500,19,1.0,980,5.4,0.48,120,19.5,14.2,17.4,12,11e6],
+ ['NKG','HOSE','Thép','Thép Nam Kim',16.9,2.42,15e6,9.1e6,68,7600,14,0.9,1210,6.6,0.92,75,18,13,16.1,11,8.4e6],
+ ['VHM','HOSE','BĐS','Vinhomes',58.7,-2.33,7.8e6,6.9e6,69,241000,8.1,1.1,7240,14.3,0.35,-12.4,64,36,57.2,14,8.4e6],
+ ['VIC','HOSE','BĐS','Tập đoàn Vingroup',71.5,6.97,12e6,4.8e6,92,273000,45,2.4,1590,5.6,1.85,52,72,38,63,18,4.5e6],
+ ['VRE','HOSE','BĐS','Vincom Retail',26.8,-1.47,5.5e6,7.1e6,57,60900,12.8,1.3,2090,10.4,0.08,9,31,16,27.5,13,7.8e6],
+ ['KDH','HOSE','BĐS','Nhà Khang Điền',34.2,0.59,3.4e6,3.9e6,65,34500,28,1.6,1220,5.9,0.35,25,37,26,33.6,7.1,3.7e6],
+ ['NLG','HOSE','BĐS','Nam Long',41.5,1.47,3.0e6,2.4e6,73,16000,19,1.4,2180,7.4,0.55,48,43,31,40.2,9.4,2.0e6],
+ ['DXG','HOSE','BĐS','Đất Xanh',17.8,-3.26,31e6,24e6,50,15500,40,1.0,450,2.5,0.45,-35,21,13,18.4,16,26e6],
+ ['DIG','HOSE','BĐS','DIC Corp',22.4,6.67,26e6,11e6,85,13700,55,1.6,410,2.9,0.6,210,24,14,19.9,19,12e6],
+ ['PDR','HOSE','BĐS','Phát Đạt',21.7,-6.95,18e6,9.5e6,38,19000,30,1.6,720,5.4,0.62,-40,26,16,23.5,17,12e6],
+ ['CEO','HNX','BĐS','Tập đoàn C.E.O',21.8,10.0,14e6,5.2e6,90,11200,48,2.2,450,4.7,0.4,300,22,12,18.0,22,5.0e6],
+ ['KBC','HOSE','BĐS KCN','Đô thị Kinh Bắc',31.9,1.27,8.1e6,7.0e6,67,24500,14,1.2,2280,8.9,0.88,160,33,24,31.0,8.2,7.5e6],
+ ['IDC','HNX','BĐS KCN','IDICO',51.3,0.98,1.8e6,2.0e6,63,16900,9.2,2.9,5580,32.5,0.6,9,58,42,50.6,7.8,2.1e6],
+ ['VNM','HOSE','Hàng tiêu dùng','Vinamilk',61.8,-0.32,3.6e6,4.1e6,35,129000,14.8,3.9,4180,26.5,0.38,-2.1,69,58,62.4,6.1,4.2e6],
+ ['MSN','HOSE','Hàng tiêu dùng','Masan Group',74.2,1.37,5.1e6,4.6e6,66,106000,32,2.4,2320,7.8,1.42,45,80,60,72.5,8.9,4.0e6],
+ ['SAB','HOSE','Đồ uống','Sabeco',49.8,-0.40,0.6e6,0.75e6,28,63900,15,2.9,3320,19.4,0.05,-11,60,46,51,7,0.8e6],
+ ['QNS','UPCOM','Thực phẩm','Đường Quảng Ngãi',47.5,0.42,0.4e6,0.5e6,60,17000,6.8,1.7,6980,25.3,0.15,5,52,44,47.0,5.9,0.45e6],
+ ['MWG','HOSE','Bán lẻ','Thế Giới Di Động',66.5,2.94,11.2e6,6.8e6,84,97300,17.5,3.0,3800,18.6,0.55,38,67.5,52,62.8,9.8,5.6e6],
+ ['SSI','HOSE','Chứng khoán','Chứng khoán SSI',33.1,4.25,38e6,21e6,87,65000,18.2,2.0,1820,11.4,1.9,27,33.4,23,30.2,12.5,17e6],
+ ['VCI','HOSE','Chứng khoán','Chứng khoán Vietcap',41.2,3.78,9.8e6,6.5e6,82,29600,23,2.0,1790,9.1,1.5,31,42,29,38.5,13,5.4e6],
+ ['HCM','HOSE','Chứng khoán','Chứng khoán HSC',30.6,2.68,10e6,7.4e6,78,22000,20,2.0,1530,10.4,1.8,22,31.5,22,29.1,11,6.6e6],
+ ['SHS','HNX','Chứng khoán','Chứng khoán SHS',15.6,4.70,22e6,13e6,79,12700,21,1.2,740,5.9,0.6,40,16,10.5,14.4,14,11e6],
+ ['GAS','HOSE','Dầu khí','PV Gas',68.9,0.88,2.4e6,2.2e6,58,161000,14.1,2.3,4890,16.8,0.12,3.5,76,60,67.6,7.2,2.6e6],
+ ['PLX','HOSE','Dầu khí','Petrolimex',36.4,-0.82,1.9e6,2.3e6,39,46200,16.5,1.5,2210,9.3,0.78,-8.2,42,33,37.0,8,2.5e6],
+ ['BSR','HOSE','Dầu khí','Lọc hóa dầu Bình Sơn',24.6,3.36,18e6,9.4e6,83,76300,21,1.3,1170,6.4,0.32,140,25,16.5,22.5,14,8.1e6],
+ ['PVD','HOSE','Dầu khí','PV Drilling',24.1,2.12,13e6,8.5e6,75,13400,15.8,0.8,1530,5.2,0.36,29,26.5,18,23.0,11,7.2e6],
+ ['PVT','HOSE','Dầu khí','PV Trans',27.9,1.82,6.8e6,4.2e6,73,9930,9.4,1.2,2970,13.8,0.48,11,28.4,22,26.6,9.1,3.8e6],
+ ['PVS','HNX','Dầu khí','PTSC',34.5,3.92,15e6,7.6e6,80,16500,15.2,1.2,2270,8.4,0.15,33,35,26,32.4,12,6.5e6],
+ ['POW','HOSE','Điện','PV Power',13.2,1.53,14e6,12e6,60,30900,22,0.9,600,4.2,0.95,12,14.1,10.8,12.9,7.9,11e6],
+ ['NT2','HOSE','Điện','Điện lực Nhơn Trạch 2',21.6,-0.46,0.7e6,0.9e6,44,6220,13.5,1.4,1600,10.6,0.1,-22,25,19,22.0,7.6,1.0e6],
+ ['TMP','HOSE','Thủy điện','Thủy điện Thác Mơ',82.5,0.61,0.15e6,0.12e6,70,5770,10.6,2.6,7780,25.1,0,41,86,60,80.4,6.3,0.14e6],
+ ['REE','HOSE','Năng lượng','Cơ điện lạnh REE',72.8,0.41,1.4e6,1.6e6,61,34300,14,1.6,5200,12.3,0.42,7,76,60,71.5,5.8,1.7e6],
+ ['HDG','HOSE','Năng lượng','Tập đoàn Hà Đô',27.1,1.12,2.1e6,2.5e6,59,9100,12.4,1.2,2190,10.1,0.9,6,30,22,26.6,8.8,2.4e6],
+ ['PC1','HOSE','Xây lắp điện','Tập đoàn PC1',24.9,2.47,7.4e6,4.5e6,82,8900,17.4,1.6,1430,9.8,1.3,65,25.5,18,23.4,10.5,4.0e6],
+ ['GMD','HOSE','Logistics/Cảng','Gemadept',64.3,1.74,4.9e6,3.0e6,78,27000,16.2,2.3,3970,14.6,0.28,19,66,49,61.8,10.2,2.7e6],
+ ['HAH','HOSE','Logistics/Cảng','Vận tải Hải An',58.6,4.84,5.8e6,2.6e6,94,7600,7.6,2.0,7710,27.4,0.62,86,58.6,36,52.0,15,2.2e6],
+ ['VSC','HOSE','Logistics/Cảng','Viconship',21.4,-0.93,3.1e6,3.8e6,46,8000,18,1.3,1190,7.2,0.55,-14,25,15,21.9,11,4.0e6],
+ ['VJC','HOSE','Hàng không','Vietjet Air',102.0,-1.92,1.2e6,1.1e6,52,55200,28,3.2,3640,11.6,2.6,15,110,92,101,9.5,1.4e6],
+ ['ACV','UPCOM','Hàng không','Cảng HK Việt Nam',108.5,1.40,0.9e6,0.7e6,76,236000,26,4.4,4170,17.4,0.12,15,128,85,105,9.9,0.6e6],
+ ['GVR','HOSE','Cao su','Cao su Việt Nam',31.5,2.27,6.3e6,4.2e6,71,126000,26,2.5,1210,9.5,0.21,18,36,24,29.9,10.8,3.9e6],
+ ['DGC','HOSE','Hóa chất','Hóa chất Đức Giang',104.0,-0.48,1.6e6,1.9e6,49,39500,13.8,3.0,7540,23.2,0.05,-4,125,92,106,8.5,2.2e6],
+ ['VEA','UPCOM','Ô tô','VEAM',40.2,-0.74,0.5e6,0.6e6,47,53400,7.1,1.9,5660,26.8,0.01,-3,45,36,40.8,6.9,0.7e6]
+];
+/* Chỉ số – giá trị demo chỉ dùng khi không có dữ liệu Live. `fa` = mã chỉ số dùng cho biểu đồ. */
+const INDICES = [
+  {key:'VNINDEX', label:'VNINDEX', fa:'VNINDEX',   name:'VN-Index (HOSE)', last:1682.45, chg:0.84,  vol:812.4e6},
+  {key:'VN30',    label:'VN30',    fa:'VN30',      name:'VN30 Index',      last:1843.12, chg:1.02,  vol:298.7e6},
+  {key:'HNX',     label:'HNX',     fa:'HNXINDEX',  name:'HNX-Index',       last:268.35,  chg:0.55,  vol:92.3e6},
+  {key:'UPCOM',   label:'UPCOM',   fa:'UPCOMINDEX',name:'UPCoM-Index',     last:108.92,  chg:-0.12, vol:61.8e6}
+];
+
+/* =========================================================================
+   1. HẰNG SỐ & TIỆN ÍCH
+   ========================================================================= */
+const FIELDS = ['ticker','company','exchange','sector','price','changePct','volume','avgVol20','marketCap','pe','pb','eps','roe','debtEquity','npatGrowth','high52','low52','ma10','ma20','ma50','range20','maxDownVol10','volatility20','volContraction','ret1m','ret3m','ret6m','ret12m','rs',
+  'ref','ceil','floor','open','high','low','value','foreignNet','avgValue20','npatQoq'];
+const STR_KEYS = new Set(['ticker','company','exchange','sector']);
+const LIMIT = {HOSE:7, HNX:10, UPCOM:15};
+const VIN_DEFAULT = ['VIC', 'VHM', 'VRE', 'VPL'];   // nhóm Vin mặc định – sửa được trong Multi-criteria Builder
+const STORE = {wl:'vnradar2.watchlist', data:'vnradar2.dataset', ui:'vnradar2.ui', notes:'vnradar2.notes'};
+const GNEWS = t => 'https://news.google.com/search?q=' + encodeURIComponent(t + ' cổ phiếu') + '&hl=vi&gl=VN&ceid=VN:vi';
+const XLSX_CDN = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+
+const $ = s => document.querySelector(s);
+const isNum = x => typeof x === 'number' && isFinite(x);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+/* lin(x,a,b): a → 0 điểm, b → 100 điểm (a>b nghĩa là "càng thấp càng tốt") */
+const lin = (x, a, b) => isNum(x) ? clamp((x - a) / (b - a), 0, 1) * 100 : null;
+const weighted = parts => { let s = 0, w = 0; parts.forEach(([v, k]) => { if (isNum(v)) { s += v * k; w += k; } }); return w ? s / w : null; };
+const round = (x, d = 2) => isNum(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normText = s => String(s == null ? '' : s).toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const normKey = s => normText(s).replace(/[^a-z0-9]/g, '');
+const ls = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e) { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e) { return false; } },
+  del(k){ try { localStorage.removeItem(k); } catch(e) {} }
+};
+const fmtP = n => isNum(n) ? n.toFixed(2) : '—';
+const fmtPct = n => isNum(n) ? (n > 0 ? '+' : '') + n.toFixed(2) + '%' : '—';
+const fmtVol = n => !isNum(n) ? '—' : n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n));
+const fmtInt = n => isNum(n) ? Math.round(n).toLocaleString('vi-VN') : '—';
+const fmtIdx = n => isNum(n) ? n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+const fmtX = (n, d = 1) => isNum(n) ? n.toFixed(d) : '—';
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hashStr(s){ let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+/* =========================================================================
+   2. QUANT ENGINE
+   ========================================================================= */
+function priceState(o){
+  if (isNum(o.price) && isNum(o.ceil) && o.ceil > 0 && o.price >= o.ceil - 1e-9 && isNum(o.ref) && o.price > o.ref) return 'ceil';
+  if (isNum(o.price) && isNum(o.floor) && o.floor > 0 && o.price <= o.floor + 1e-9 && isNum(o.ref) && o.price < o.ref) return 'floor';
+  if (isNum(o.ceil) && isNum(o.floor) && isNum(o.changePct)) return Math.abs(o.changePct) < 0.005 ? 'ref' : o.changePct > 0 ? 'up' : 'down';
+  if (!isNum(o.changePct)) return 'ref';
+  const lim = LIMIT[o.exchange] || 7;
+  if (o.changePct >= lim - 0.07) return 'ceil';
+  if (o.changePct <= -(lim - 0.07)) return 'floor';
+  if (Math.abs(o.changePct) < 0.005) return 'ref';
+  return o.changePct > 0 ? 'up' : 'down';
+}
+
+/* --- RS Rating: composite return có trọng số → percentile rank 1–99 trong universe --- */
+const RS_W = {ret1m:0.15, ret3m:0.25, ret6m:0.30, ret12m:0.30};
+function computeRS(list, isDemo){
+  list.forEach(o => {
+    let s = 0, w = 0;
+    for (const k in RS_W) if (isNum(o[k])) { s += o[k] * RS_W[k]; w += RS_W[k]; }
+    o.rsComposite = w >= 0.5 ? s / w : null;     // cần tối thiểu 50% trọng số có dữ liệu
+  });
+  const ranked = list.filter(o => o.rsComposite !== null).sort((a, b) => a.rsComposite - b.rsComposite);
+  const n = ranked.length;
+  ranked.forEach((o, i) => { o.rs = n > 1 ? Math.round(1 + 98 * i / (n - 1)) : 50; o.rsSource = isDemo ? 'Demo RS' : 'Computed'; });
+  list.forEach(o => {
+    if (o.rsComposite !== null) return;
+    if (isNum(o.rsInput)) { o.rs = clamp(Math.round(o.rsInput), 1, 99); o.rsSource = 'Imported'; }
+    else { o.rs = null; o.rsSource = null; }
+  });
+}
+
+/* --- BASE_SCORE (Tight Base / Accumulation) 0–100 --- */
+function baseScore(o){
+  const above = isNum(o.price) && isNum(o.ma20) ? (o.price >= o.ma20 ? 100 : lin(o.price / o.ma20, 0.95, 1)) : null;
+  const v = weighted([
+    [lin(o.volatility20, 2.5, 0.9), 0.30],   // biến động ngày 20 phiên thấp (độ lệch chuẩn %)
+    [lin(o.range20, 15, 5), 0.30],           // biên độ giá 20 phiên hẹp
+    [above, 0.20],                            // giá trên MA20
+    [lin(o.volContraction, 1.1, 0.75), 0.20]  // KL co lại khi tích lũy (AvgVol10/AvgVol20)
+  ]);
+  return v === null ? null : Math.round(v);
+}
+
+/* --- Trend --- */
+function trendOf(o){
+  const p = o.price, a = o.ma10, b = o.ma20, c = o.ma50;
+  if (![p, b, c].every(isNum)) return {label:'N/A', score:null, cls:'', icon:'·'};
+  if (isNum(a) && p > a && a > b && b > c) return {label:'Strong Up', score:100, cls:'up', icon:'▲▲'};
+  if (p > b && b > c) return {label:'Uptrend', score:80, cls:'up', icon:'▲'};
+  if (p < b && b < c) return {label:'Downtrend', score:5, cls:'down', icon:'▼▼'};
+  if (p < c) return {label:'Weak', score:25, cls:'down', icon:'▼'};
+  return {label:'Sideways', score:50, cls:'ref', icon:'◆'};
+}
+
+/* --- RADAR SCORE = Tech 35% + RS 20% + Volume 15% + Fundamental 20% + Trend 10% --- */
+function computeScores(o){
+  o.baseScore = baseScore(o);
+  const tr = trendOf(o); o.trend = tr.label; o.trendScore = tr.score; o.trendCls = tr.cls; o.trendIcon = tr.icon;
+
+  const conds = [];
+  if (isNum(o.price) && isNum(o.ma10)) conds.push(o.price > o.ma10);
+  if (isNum(o.price) && isNum(o.ma20)) conds.push(o.price > o.ma20);
+  if (isNum(o.price) && isNum(o.ma50)) conds.push(o.price > o.ma50);
+  if (isNum(o.ma10) && isNum(o.ma20)) conds.push(o.ma10 > o.ma20);
+  if (isNum(o.ma20) && isNum(o.ma50)) conds.push(o.ma20 > o.ma50);
+  const maStack = conds.length ? conds.filter(Boolean).length / conds.length * 100 : null;
+  const prox = isNum(o.price) && isNum(o.high52) && o.high52 > 0 ? lin(o.price / o.high52, 0.7, 1.0) : null;
+  const technical = weighted([[maStack, 0.40], [prox, 0.35], [o.baseScore, 0.25]]);
+
+  let volume = null;
+  if (isNum(o.volRatio)) {
+    const c = isNum(o.changePct) ? o.changePct : 0;
+    if (c > 0) volume = lin(o.volRatio, 0.5, 2.0);                 // tăng giá + KL lớn = cầu mạnh
+    else if (c < 0) volume = lin(o.volRatio, 2.0, 0.5) * 0.7;      // giảm giá + KL lớn = phân phối
+    else volume = 50;
+  }
+  const peS = isNum(o.pe) ? (o.pe > 0 ? lin(o.pe, 25, 8) : 0) : null;
+  const fundamental = weighted([
+    [lin(o.roe, 5, 25), 0.35], [peS, 0.25], [lin(o.npatGrowth, -10, 40), 0.25], [lin(o.debtEquity, 2, 0.3), 0.15]
+  ]);
+
+  o.parts = {technical, rs:isNum(o.rs) ? o.rs : null, volume, fundamental, trend:o.trendScore};
+  const s = weighted([[technical, 0.35], [o.parts.rs, 0.20], [volume, 0.15], [fundamental, 0.20], [o.trendScore, 0.10]]);
+  o.score = s === null ? null : Math.round(s);
+  o.grade = gradeOf(o.score);
+}
+function gradeOf(s){
+  if (!isNum(s)) return {label:'N/A', cls:''};
+  if (s >= 90) return {label:'Exceptional', cls:'g-exc'};
+  if (s >= 80) return {label:'Strong', cls:'g-str'};
+  if (s >= 70) return {label:'Positive', cls:'g-pos'};
+  if (s >= 60) return {label:'Neutral', cls:'g-neu'};
+  return {label:'Weak', cls:'g-wk'};
+}
+
+/* --- Chuẩn hóa 1 dòng --- */
+function normalizeRow(raw){
+  const o = {};
+  FIELDS.forEach(k => o[k] = raw[k] === undefined ? null : raw[k]);
+  o.rsInput = isNum(raw.rs) ? raw.rs : null; o.rs = null;
+  o.ticker = String(o.ticker || '').toUpperCase().trim();
+  let ex = String(o.exchange || 'HOSE').toUpperCase().replace(/\s/g, '');
+  if (ex === 'HSX' || ex === 'HCM') ex = 'HOSE';
+  if (ex === 'UPC') ex = 'UPCOM';
+  o.exchange = ex;
+  o.sector = o.sector ? String(o.sector).trim() : '';
+  o.company = o.company ? String(o.company).trim() : '';
+  o.volRatio = isNum(o.volume) && isNum(o.avgVol20) && o.avgVol20 > 0 ? o.volume / o.avgVol20 : null;
+  if (!isNum(o.avgValue20) && isNum(o.avgVol20) && isNum(o.price)) o.avgValue20 = o.avgVol20 * o.price / 1e6;   // tỷ đồng (giá: nghìn đ)
+  o.state = priceState(o);
+  o._n = normText(o.ticker + ' ' + o.company + ' ' + o.sector);
+  return o;
+}
+function buildUniverse(list, isDemo){
+  computeRS(list, isDemo);
+  list.forEach(computeScores);
+  return list;
+}
+
+/* --- Demo: sinh MA10/MA20, biến động, co KL, return 1M–12M một cách TẤT ĐỊNH (không random mỗi lần mở).
+       Dữ liệu thật nên nạp qua Import EOD; khi đó các trường này lấy từ file. --- */
+function demoUniverse(){
+  const list = DEMO_ROWS.map(r => {
+    const raw = {}; DEMO_KEYS.forEach((k, i) => raw[k] = r[i]);
+    const rnd = mulberry32(hashStr(raw.ticker + '#demo')), nz = s => (rnd() - 0.5) * 2 * s;
+    const b = (raw.rsSeed - 50) / 50;
+    raw.ma20 = round(raw.ma50 + (raw.price - raw.ma50) * 0.55 + nz(raw.price * 0.004));
+    raw.ma10 = round(raw.ma20 + (raw.price - raw.ma20) * 0.55 + nz(raw.price * 0.003));
+    raw.volatility20 = round(Math.max(0.8, raw.range20 * 0.17 + nz(0.25)));
+    raw.volContraction = round(Math.max(0.5, 0.62 + raw.range20 * 0.035 + nz(0.08)));
+    raw.ret1m = round(b * 7 + raw.changePct * 0.6 + nz(2.5), 1);
+    raw.ret3m = round(b * 16 + nz(4), 1);
+    raw.ret6m = round(b * 24 + nz(6), 1);
+    raw.ret12m = round(b * 30 + (raw.price / raw.low52 - 1) * 35 + nz(8), 1);
+    delete raw.rsSeed;
+    return normalizeRow(raw);
+  });
+  return buildUniverse(list, true);
+}
+
+/* =========================================================================
+   3. FILTER ENGINE (Quick strategies + Custom rules, AND/OR) & SCOPE
+   ========================================================================= */
+const QF = {
+  vol:  {label:'Volume Surge', tag:'VOL > 150% AVG20', hint:'Volume / AvgVol20 ≥ 1.5',
+         test:o => isNum(o.volRatio) && o.volRatio >= 1.5},
+  brk:  {label:'Breakout 52W', tag:'P ≥ 98%·H52 & Vol ≥ 1.2x', hint:'Giá ≥ 98% đỉnh 52 tuần và Volume Ratio ≥ 1.2',
+         test:o => isNum(o.price) && isNum(o.high52) && o.price >= o.high52 * 0.98 && isNum(o.volRatio) && o.volRatio >= 1.2},
+  pp:   {label:'Pocket Pivot', tag:'Heuristic (dữ liệu ngày)', heuristic:true,
+         hint:'Heuristic: phiên tăng, Volume > KL lớn nhất của các phiên giảm trong 10 phiên trước, giá > MA10. Không phải bộ tiêu chí IBD đầy đủ.',
+         test:o => isNum(o.changePct) && o.changePct > 0 && isNum(o.volume) && isNum(o.maxDownVol10) && o.volume > o.maxDownVol10 && isNum(o.ma10) && o.price > o.ma10},
+  base: {label:'Tight Base', tag:'BASE_SCORE ≥ 70', heuristic:true,
+         hint:'Heuristic tích lũy: biến động thấp, biên độ 20 phiên hẹp, giá > MA20, KL co lại. BASE_SCORE ≥ 70.',
+         test:o => isNum(o.baseScore) && o.baseScore >= 70},
+  val:  {label:'Fundamental Value', tag:'ROE>15 · P/E<10 · D/E<1.5', hint:'ROE > 15%, 0 < P/E < 10, Nợ vay/VCSH < 1.5 (khi không có dữ liệu D/E – ngân hàng hoặc nguồn Live – điều kiện D/E được bỏ qua)',
+         test:o => isNum(o.roe) && o.roe > 15 && isNum(o.pe) && o.pe > 0 && o.pe < 10 && (!isNum(o.debtEquity) || o.debtEquity < 1.5)},
+  rs:   {label:'Strong RS', tag:'RS ≥ 80', hint:'RS Rating ≥ 80',
+         test:o => isNum(o.rs) && o.rs >= 80},
+  /* ---- WYCKOFF / VSA (port AFL ORION.apx + Loc_TichLuy_Vung_Dinh.afl — cần dữ liệu Live) ---- */
+  wl1: {g:'wy', label:'Loại 1', tag:'W · Loại 1 tích luỹ sát đỉnh', hint:'Loc_TichLuy v3 "SUPPER": cách đỉnh 52T ≤15% · biên nền 25 phiên ≤18% · vol nền/25p trước ≤0,9 · trên MA20&MA50 (hoặc hồi ≤3% vol cạn) · MA50 không dốc xuống · chưa bung (RelVol<1,5, |%ngày|<4) · trên DG65 & cách ≤18% · GTGD ≥10 tỷ',
+         test:o => !!(o.wy && o.wy.l1)},
+  wl2: {g:'wy', label:'Loại 2', tag:'W · Loại 2 nền 3T + rũ bỏ', hint:'Loc_TichLuy v3 "RU BO 3T": nền 63 phiên biên ≤30%, đi ngang ≤15%, MA50 không gãy · có Spring (thủng đáy 40p rồi rút chân, đóng nửa trên) trong 30 phiên · đã bật ≥2% khỏi đáy rũ · sát (≤3%) hoặc đã vượt cản chéo · GTGD ≥10 tỷ',
+         test:o => !!(o.wy && o.wy.l2)},
+  wsp: {g:'wy', label:'Spring ≤5p', tag:'W · Spring/rũ bỏ ≤5 phiên', hint:'Phiên thủng đáy 40 phiên trước rồi đóng lại trên đáy đó, đóng nửa trên thân nến — trong 5 phiên gần nhất (định nghĩa springBar của Loc_TichLuy). Xem vol cây rũ trong panel: vol thấp = rũ bỏ cuối (§13.9); vol lớn đóng cao = Stopping Volume.',
+         test:o => !!(o.wy && o.wy.spring5)},
+  wbo: {g:'wy', label:'BO cản chéo', tag:'W · Break-out cản chéo VỪA vượt', hint:'§13.103/§15.38: có cản chéo (2 đỉnh 60 phiên giảm dần) · hôm nay vượt (capCheoGap>0) mà phiên trước chưa (cgPrev≤0) · RelVol ≥1,5 · ClsPos ≥50 · RelSpr ≥1. Mở CỬA VÀO, không mở THÂN SÓNG — nổ xong còn tích luỹ lại; không đuổi quá +3%.',
+         test:o => !!(o.wy && o.wy.boCap)},
+  wpv: {g:'wy', label:'Pivot ≤5p', tag:'W · Pivot xác nhận ≤5 phiên', hint:'tier_gate PIVOT_XAC_NHAN: phiên tăng · vol ≥1,5× TB20 · trên dao găm 65 · Chikou thoáng (giá > đỉnh 26 phiên trước) — trong 5 phiên gần nhất (pv5 ≥1)',
+         test:o => !!(o.wy && o.wy.pv5 > 0)},
+  wns: {g:'wy', label:'No Supply', tag:'W · No Supply (test cung đạt)', hint:'Bảng Bar VSA: phiên giảm · RelVol <0,8 · biên hẹp RelSpr <0,8 · đóng nửa trên ⇒ cung cạn, sắp đảo chiều',
+         test:o => !!(o.wy && o.wy.bar && o.wy.bar.k === 'NS')},
+  wcr: {g:'wy', label:'Bò MA10/20', tag:'W · Bò dọc MA10/20 êm', hint:'§13.98 maCreepQuiet: ≥3 phiên liên tiếp đóng trên cả MA10 & MA20 và không có cây vol ≥1,5× trong đoạn đó. Cấm gọi "Pivot".',
+         test:o => !!(o.wy && o.wy.maCreepQuiet)},
+  wlh: {g:'wy', label:'Cạn cung giá', tag:'W · Không tạo được giá thấp hơn', hint:'§13.97 lowHeld: đáy 120 phiên đã giữ ≥20 phiên (lowN ≥20) dù lực bán vẫn diễn ra (dn20 ≥30% số phiên giảm)',
+         test:o => !!(o.wy && o.wy.lowHeld)},
+  wdb: {g:'wy', label:'2 đáy', tag:'W · Mô hình 2 đáy (db2)', hint:'§15.36: cách đỉnh 52T ≤ −20% · 20 ≤ lowN ≤ 70 · cách đáy 120p ≤18% · RelVol <0,85 · ClsPos ≥40. ⛔ Cấm đọc "sắp nảy" (§13.71).',
+         test:o => !!(o.wy && o.wy.db2)},
+  wwn: {g:'wy', warn:true, label:'⚠ Bán/cảnh báo', tag:'W · Cảnh báo (SOW · BCLX · rục đầu · mất DG65)', hint:'Phiên hiện tại là SOW (giảm vol lớn biên rộng đóng thấp) · BCLX (tăng vol lớn biên hẹp đóng thấp) · rục đầu (bóng trên ≥40% + vol ≥1,2×) · hoặc đã mất dao găm 65 ≥3 nến',
+         test:o => !!(o.wy && o.wy.warn.length)},
+  /* ---- ICHIMOKU 9·17·26·26 + DG65/129 ---- */
+  ibuy:{g:'ic', label:'Ichi chuẩn 5/5', tag:'I · Đủ 5 bước, chưa quá 18%', hint:'Ao Sen trên Mây · TK > KJ · Chikou sạch (trên Ao Sen + Mây 26 phiên trước và trên đỉnh giá 26 phiên trước) · giá > KJ · giá > DG65 · không vi phạm 18%',
+         test:o => !!(o.ic && o.ic.buy)},
+  iup: {g:'ic', label:'Xu hướng tăng', tag:'I · Ao Sen trên Mây', hint:'B1: cả Tenkan và Kijun nằm trên Mây (mây tại phiên hiện tại = Span A/B tính từ 26 phiên trước)',
+         test:o => !!(o.ic && o.ic.trend === 'up')},
+  ihb: {g:'ic', label:'Hợp bích lên', tag:'I · 2 kiếm hợp bích lên', hint:'B2: Tenkan > Kijun và cả hai cùng đi lên/ngang — trạng thái tăng mạnh',
+         test:o => !!(o.ic && o.ic.state === 'hbUp')},
+  ics: {g:'ic', label:'Chikou sạch', tag:'I · Đường trẻ thoáng', hint:'B3: Chikou (giá hôm nay đặt lùi 26 phiên) nằm trên TẤT CẢ Ao Sen + Mây tại đó và trên đỉnh giá 26 phiên trước (CSok)',
+         test:o => !!(o.ic && o.ic.csClean)},
+  idkb:{g:'ic', label:'Double Kumo BO', tag:'I · Double Kumo Breakout ≤5p', hint:'Chikou vừa thoát cả 2 mây trong ≤5 phiên + TK & KJ chập ≤5% cùng đi lên + Span A, Span B cùng hướng lên (đủ 4 yếu tố) — chờ test lại (attraction) để vào đẹp',
+         test:o => !!(o.ic && o.ic.dkb)},
+  idg: {g:'ic', label:'Về DG65 lần đầu', tag:'I · Giá về dao găm 65 lần đầu', hint:'Giá đứng trên và cách DG65 ≤2%, 20 phiên trước chưa chạm ⇒ xác suất bật cao (mua ở dao găm). Kiểm Chikou đối diện mây dày.',
+         test:o => !!(o.ic && o.ic.firstDG)},
+  iks: {g:'ic', label:'Khách sạn', tag:'I · Khách sạn (KJ phẳng hút giá)', hint:'Kijun phẳng ≥5 phiên + Tenkan đi xa trên Kijun ≥2% ⇒ giá bị hút về KJ: đang có hàng canh chốt dần, chưa có hàng canh mua tại KJ',
+         test:o => !!(o.ic && o.ic.ks)},
+  iob: {g:'ic', warn:true, label:'⚠ Quá 18%', tag:'I · Vi phạm quy tắc 18%', hint:'Giá cách dao găm 65 ĐANG PHẲNG > 18% ⇒ quá mua, chờ tích luỹ/điều chỉnh về nạp lại',
+         test:o => !!(o.ic && o.ic.ob18)},
+  ilost:{g:'ic', warn:true, label:'⚠ Mất DG65', tag:'I · Mất dao găm 65 ≥3 nến', hint:'≥3 phiên liên tiếp đóng cửa dưới dao găm 65 ⇒ SL cấu trúc (triết lý Samurai)',
+         test:o => !!(o.ic && o.ic.lostDG)}
+};
+const RULE_FIELDS = {
+  roe:['ROE (%)', o => o.roe], pe:['P/E', o => o.pe], pb:['P/B', o => o.pb], volRatio:['Vol/Avg20', o => o.volRatio],
+  rs:['RS Rating', o => o.rs], score:['Radar Score', o => o.score], baseScore:['BASE_SCORE', o => o.baseScore],
+  changePct:['Change %', o => o.changePct], price:['Price', o => o.price], marketCap:['Mkt Cap (tỷ)', o => o.marketCap],
+  npatGrowth:['LNST YoY (%)', o => o.npatGrowth], debtEquity:['Debt/Equity', o => o.debtEquity],
+  ret3m:['Return 3M (%)', o => o.ret3m], ret12m:['Return 12M (%)', o => o.ret12m],
+  avgValue20:['GTGD TB20 (tỷ)', o => o.avgValue20], foreignNet:['NN mua ròng (tỷ)', o => o.foreignNet]
+};
+const OPS = {'>':[(a,b) => a > b, '>'], '>=':[(a,b) => a >= b, '≥'], '<':[(a,b) => a < b, '<'], '<=':[(a,b) => a <= b, '≤'], '=':[(a,b) => Math.abs(a - b) < 1e-9, '=']};
+const PRESETS = {
+  vm:  {label:'Value + Momentum', rules:[['roe','>',15],['pe','<',12],['volRatio','>',1.5],['rs','>',80]]},
+  lead:{label:'Market Leaders', rules:[['rs','>=',80],['score','>=',80]]},
+  qg:  {label:'Quality Growth', rules:[['roe','>=',15],['npatGrowth','>=',20],['pe','<=',20]]},
+  bs:  {label:'Base + RS', rules:[['baseScore','>=',70],['rs','>=',70]]}
+};
+function ruleTest(r, o){
+  const f = RULE_FIELDS[r.f]; if (!f) return false;
+  const x = f[1](o); if (!isNum(x)) return false;
+  if ((r.f === 'pe' || r.f === 'pb') && x <= 0) return false;
+  return OPS[r.op][0](x, r.v);
+}
+const ruleLabel = r => `${RULE_FIELDS[r.f][0]} ${OPS[r.op][1]} ${r.v}`;
+
+/* =========================================================================
+   4. STATE
+   ========================================================================= */
+const ui = ls.get(STORE.ui, {});
+const state = {
+  data:[], source:'Demo', isDemo:true, view:[],
+  selected:null, chartSymbol:'VNINDEX', activeIndex:'VNINDEX', chartMode: ['vs','fa','sim'].includes(ui.chartMode) ? ui.chartMode : 'vs',
+  sort: ui.sort || {key:'score', dir:-1},
+  quick: new Set((ui.quick || []).filter(k => QF[k])),
+  rules: Array.isArray(ui.rules) ? ui.rules.filter(r => RULE_FIELDS[r.f] && OPS[r.op] && isNum(r.v)) : [],
+  mode: ui.mode === 'OR' ? 'OR' : 'AND',
+  scope: Object.assign({exchange:'', sector:'', wlOnly:false, liq:'1'}, ui.scope || {}),
+  uni: ui.uni || 'HOSE', idxLive:null, idx:null, prevPx:new Map(), mkt:null, secSort:ui.secSort || 'pct',
+  vin: Array.isArray(ui.vin) && ui.vin.length ? ui.vin : VIN_DEFAULT.slice(), ichiOn: ui.ichiOn !== false, chipCol: ui.chipCol || {},
+  search:'',
+  side: isNum(ui.side) ? ui.side : 40,
+  watch: new Set(ls.get(STORE.wl, [])),
+  notes: ls.get(STORE.notes, {})
+};
+const saveUI = () => ls.set(STORE.ui, {sort:state.sort, quick:[...state.quick], rules:state.rules, mode:state.mode, scope:state.scope, side:state.side, chartMode:state.chartMode, uni:state.uni, vin:state.vin, secSort:state.secSort, ichiOn:state.ichiOn, chipCol:state.chipCol});
+const bySym = t => state.idx ? state.idx.get(t) : undefined;
+
+function scopeMatch(o){
+  const s = state.scope;
+  if (s.exchange && o.exchange !== s.exchange) return false;
+  if (s.sector && o.sector !== s.sector) return false;
+  if (s.wlOnly && !state.watch.has(o.ticker)) return false;
+  if (s.liq && isNum(o.avgValue20) && o.avgValue20 < +s.liq) return false;
+  const q = normText(state.search.trim());
+  return !q || o._n.includes(q);
+}
+function condMatch(o){
+  const tests = [...[...state.quick].map(k => QF[k].test), ...state.rules.map(r => (x => ruleTest(r, x)))];
+  if (!tests.length) return true;
+  return state.mode === 'AND' ? tests.every(t => t(o)) : tests.some(t => t(o));
+}
+function sortList(arr){
+  const {key, dir} = state.sort;
+  const val = o => key === 'w' ? (state.watch.has(o.ticker) ? 1 : 0) : o[key];
+  return arr.sort((a, b) => {
+    const x = val(a), y = val(b);
+    const xn = x == null || x === '', yn = y == null || y === '';
+    if (xn && yn) return a.ticker.localeCompare(b.ticker);
+    if (xn) return 1; if (yn) return -1;
+    if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y), 'vi') * dir || a.ticker.localeCompare(b.ticker);
+    return (x - y) * dir || a.ticker.localeCompare(b.ticker);
+  });
+}
+function applyFilters(){
+  state.view = sortList(state.data.filter(o => scopeMatch(o) && condMatch(o)));
+  renderTable(); renderChips(); renderActive(); renderSortHeads(); renderSectors();
+  $('#footInfo').textContent = `${state.view.length}/${state.data.length} mã · Watchlist ${state.watch.size} · Nguồn: ${state.source}`;
+}
+
+/* =========================================================================
+   4b. LIVE DATA ENGINE — chạy độc lập trong trình duyệt, không cần server/phần mềm
+   Nguồn công khai, đã kiểm chứng gọi được trực tiếp từ file:// (origin "null") ngày 08/10/2026:
+   - VPS bảng giá   bgapidatafeed.vps.com.vn/getliststockdata/{mã,...}   giá: nghìn đ · lot ×10 = cổ phiếu
+   - VPS chỉ số     bgapidatafeed.vps.com.vn/getlistindexdetail/10,11,02,03
+   - VPS danh sách  bgapidatafeed.vps.com.vn/getlistckindex/{hose|hnx|upcom|VN30}
+   - Lịch sử ngày   histdatafeed.vps.com.vn/tradingview/history  (dự phòng: dchart-api.vndirect.com.vn)
+   - Tên · ngành    api-finance-t19.24hmoney.vn/v1/ios/company/az    (ICB cấp 4, KL niêm yết)
+   - Cơ bản         api2.simplize.vn/api/company/summary/{mã}        (EPS, BVPS, ROE, tăng trưởng LNST)
+   Đây là API công khai KHÔNG chính thức → có thể đổi/chặn bất cứ lúc nào. Khi lỗi: dùng cache, rồi lùi về Demo.
+   Cách tính trong phiên: lịch sử tải 1 lần/ngày → rút gọn thành "prior" (tổng 9/19/49 giá đóng cửa, đỉnh/đáy,
+   KLTB, return…) → mỗi lần có giá khớp mới chỉ cần ghép với giá hiện tại để ra MA, 52W, RS, BASE_SCORE, Radar Score.
+   ========================================================================= */
+const SRC = {
+  board: l => 'https://bgapidatafeed.vps.com.vn/getliststockdata/' + l.join(','),
+  index: 'https://bgapidatafeed.vps.com.vn/getlistindexdetail/10,11,02,03',
+  list: x => 'https://bgapidatafeed.vps.com.vn/getlistckindex/' + x,
+  hist: [(s, f, t) => `https://histdatafeed.vps.com.vn/tradingview/history?symbol=${s}&resolution=D&from=${f}&to=${t}`,
+         (s, f, t) => `https://dchart-api.vndirect.com.vn/dchart/history?resolution=D&symbol=${s}&from=${f}&to=${t}`],
+  meta: 'https://api-finance-t19.24hmoney.vn/v1/ios/company/az?device_id=web&industry_code=all&floor_code=all&com_type=all&letter=all&page=1&per_page=5000',
+  fund: s => 'https://api2.simplize.vn/api/company/summary/' + encodeURIComponent(s)
+};
+const UNIVERSES = {
+  HOSE:{label:'HOSE', lists:['hose']}, VN30:{label:'VN30', lists:['VN30']},
+  HOSE_HNX:{label:'HOSE+HNX', lists:['hose', 'hnx']}, ALL:{label:'3 sàn', lists:['hose', 'hnx', 'upcom']}
+};
+const LIST_EX = {hose:'HOSE', hnx:'HNX', upcom:'UPCOM', VN30:'HOSE'};
+const IDX_MC = {'10':'VNINDEX', '11':'VN30', '02':'HNX', '03':'UPCOM'};
+const LKEY = {list:'vnradar.live.list', meta:'vnradar.live.meta', hist:'vnradar.live.hist', fund:'vnradar.live.fund', series:'vnradar.live.series'};
+const POLL_MS = 5000, FUND_TTL = 3 * 864e5, META_TTL = 7 * 864e5;
+const live = {on:false, uni:null, gen:0, busy:false, tickers:[], mkt:[], mktLists:[], series:null, bars:{}, tb:new Map(), exOf:{}, board:new Map(), prior:{}, meta:{}, fund:{}, lastPoll:0, updated:null, phase:'', barCache:new Map()};
+
+const num = v => { const n = typeof v === 'number' ? v : parseFloat(v); return isFinite(n) ? n : null; };
+const P6 = x => isNum(x) ? Number(x.toPrecision(7)) : null;
+function vnDate(){ const n = vnNow(); return `${n.y}-${n.mo}-${n.d}`; }
+const hhmmss = d => d ? d.toLocaleTimeString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh', hour12:false}) : '—';
+function marketOpenNow(){
+  const n = vnNow(), wd = WD_IDX[n.wd]; if (wd === 0 || wd === 6) return false;
+  const m = n.h * 60 + n.m;
+  return (m >= 535 && m <= 692) || (m >= 778 && m <= 906);   // 08:55–11:32 · 12:58–15:06
+}
+async function fetchJSON(url, ms = 15000){
+  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try { const r = await fetch(url, {signal:c.signal, cache:'no-store'}); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  finally { clearTimeout(t); }
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function pool(items, n, fn, onStep, gap = 0){
+  const q = items.slice(), failed = []; let done = 0;
+  await Promise.all(Array.from({length:Math.min(n, q.length)}, async () => {
+    while (q.length) { const it = q.shift(); try { await fn(it); } catch (e) { failed.push(it); } done++; if (onStep) onStep(done, items.length); if (gap) await sleep(gap); }
+  }));
+  return failed;
+}
+function setLive(kind, text){ const el = $('#liveStat'); el.className = 'live ' + kind; el.querySelector('b').textContent = text; }
+function setProgress(f){ const p = $('#prog'); if (f === null) { p.hidden = true; return; } p.hidden = false; p.querySelector('i').style.width = clamp(f, 0, 1) * 100 + '%'; }
+function liveStatusOk(){
+  if (!live.on) return;
+  const open = marketOpenNow();
+  setLive(open ? 'on' : 'eod', `${open ? 'LIVE' : 'Ngoài giờ'} · ${hhmmss(live.updated)} · ${live.tickers.length} mã${live.phase ? ' · ' + live.phase : ''}`);
+}
+
+/* --- Danh sách mã, tên/ngành --- */
+async function loadTickers(lists){
+  const today = vnDate(), cache = ls.get(LKEY.list, null), got = {};
+  const fresh = cache && cache.date === today ? cache.lists || {} : {};
+  for (const l of lists) got[l] = fresh[l] || await fetchJSON(SRC.list(l));
+  ls.set(LKEY.list, {date:today, lists:Object.assign({}, fresh, got)});
+  const exOf = {};
+  ['hose', 'hnx', 'upcom', 'VN30'].filter(l => got[l]).forEach(l => got[l].forEach(t => { if (/^[A-Z0-9]{3}$/.test(t) && !exOf[t]) exOf[t] = LIST_EX[l]; }));
+  return {exOf, got};
+}
+async function loadMeta(){
+  const c = ls.get(LKEY.meta, null);
+  if (c && c.map && Date.now() - c.ts < META_TTL) return c.map;
+  try {
+    const j = await fetchJSON(SRC.meta, 25000), map = {};
+    ((j.data && j.data.data) || []).forEach(r => { map[r.symbol] = [(r.short_name || r.company_name || '').trim(), (r.icb_name_vi || '').trim(), r.floor || '', num(r.listed_share_vol), (r.company_name || '').trim()]; });
+    ls.set(LKEY.meta, {ts:Date.now(), map});
+    return map;
+  } catch (e) { return (c && c.map) || {}; }
+}
+
+/* --- Bảng giá & chỉ số --- */
+function parseBoard(x){
+  const lot = num(x.lot), p = num(x.lastPrice);
+  return {price:p && p > 0 ? p : null, ref:num(x.r), ceil:num(x.c), floor:num(x.f), open:num(x.openPrice), high:num(x.highPrice), low:num(x.lowPrice),
+          vol:lot !== null ? lot * 10 : null, avg:num(x.avePrice), fNet:(num(x.fBValue) || 0) - (num(x.fSValue) || 0)};
+}
+async function fetchBoard(tickers){
+  const chunks = []; for (let i = 0; i < tickers.length; i += 300) chunks.push(tickers.slice(i, i + 300));
+  const res = await Promise.all(chunks.map(c => fetchJSON(SRC.board(c))));
+  const m = new Map(); res.flat().forEach(x => { if (x && x.sym) m.set(x.sym, parseBoard(x)); });
+  return m;
+}
+async function fetchIndices(){
+  const arr = await fetchJSON(SRC.index), out = {};
+  (arr || []).forEach(x => {
+    const k = IDX_MC[x.mc]; if (!k) return;
+    const c = num(x.cIndex), o = num(x.oIndex), ot = String(x.ot || '').split('|');
+    out[k] = {last:c, chgPts:isNum(c) && o ? c - o : null, chg:isNum(c) && o ? (c / o - 1) * 100 : null, vol:num(x.vol), value:num(ot[2]), adv:num(ot[3]), dec:num(ot[4]), unc:num(ot[5]), time:x.time};
+  });
+  return out;
+}
+
+/* --- Lịch sử → prior --- */
+async function fetchHist(sym, days = 400){
+  const to = Math.floor(Date.now() / 1000) + 86400, from = to - days * 86400;
+  let err = new Error('no data');
+  for (const u of SRC.hist) {
+    try { const j = await fetchJSON(u(sym, from, to)); if (j && j.s === 'ok' && j.t && j.t.length) return j; } catch (e) { err = e; }
+  }
+  throw err;
+}
+function priorStats(C, H, L, V, n){
+  if (n < 2) return null;
+  const sumLast = (A, k) => { if (n < k) return null; let s = 0; for (let i = n - k; i < n; i++) s += A[i]; return s; };
+  let mxH = -Infinity, mnL = Infinity, h19 = -Infinity, l19 = Infinity, rs = 0, rss = 0, rn = 0, mdv = null;
+  for (let i = Math.max(0, n - 251); i < n; i++) { if (H[i] > mxH) mxH = H[i]; if (L[i] < mnL) mnL = L[i]; }
+  for (let i = Math.max(0, n - 19); i < n; i++) { if (H[i] > h19) h19 = H[i]; if (L[i] < l19) l19 = L[i]; }
+  for (let i = Math.max(1, n - 19); i < n; i++) { const r = C[i] / C[i - 1] - 1; if (isFinite(r)) { rs += r; rss += r * r; rn++; } }
+  for (let i = Math.max(1, n - 10); i < n; i++) if (C[i] < C[i - 1]) mdv = Math.max(mdv || 0, V[i]);
+  const avg = k => { const s = sumLast(V, k); return s === null ? null : s / k; };
+  const ago = k => n - k >= 0 ? C[n - k] : null;
+  return {s9:P6(sumLast(C, 9)), s19:P6(sumLast(C, 19)), s49:P6(sumLast(C, 49)), mxH, mnL, h19, l19, rs:P6(rs), rss:P6(rss), rn,
+          av20:P6(avg(20)), av10:P6(avg(10)), mdv, c21:ago(21), c63:ago(63), c126:ago(126), c252:ago(252), lc:C[n - 1]};
+}
+function histEntry(j){
+  const n = j.t.length; if (n < 2) return null;
+  const d = new Date(j.t[n - 1] * 1000).toISOString().slice(0, 10);
+  return {a:priorStats(j.c, j.h, j.l, j.v, n), x:priorStats(j.c, j.h, j.l, j.v, n - 1), ld:d, lc:j.c[n - 1], lv:j.v[n - 1]};
+}
+/* Chọn prior: bỏ nến cuối nếu nó chính là phiên đang hiển thị trên bảng giá (tránh đếm trùng) */
+function pickPrior(P, b){
+  if (!P) return null;
+  if (P.ld === vnDate()) return P.x;
+  if (b && isNum(b.price) && Math.abs(P.lc - b.price) < 1e-6 && isNum(b.vol) && b.vol > 0 && Math.abs(P.lv - b.vol) / Math.max(P.lv, b.vol) < 0.03) return P.x;
+  return P.a;
+}
+
+/* --- Cơ bản (Simplize) --- */
+async function loadFund(tickers, onBatch){
+  const c = live.fund;
+  const need = tickers.filter(t => !c[t] || Date.now() - c[t][0] > FUND_TTL);
+  if (!need.length) return;
+  /* Simplize giới hạn tần suất: 3 luồng, nghỉ 120 ms/lượt (đo thực tế: ~79/80 thành công), lỗi thì thử lại 1 lần chậm hơn */
+  const one = async t => {
+    let j;
+    try { j = await fetchJSON(SRC.fund(t)); }
+    catch (e) { if (/HTTP 4(00|04)/.test(e.message)) { c[t] = [Date.now()]; return; } throw e; }   // mã không có trên Simplize → nhớ, không gọi lại
+    const d = j && j.data;
+    c[t] = d ? [Date.now(), num(d.epsRatio), num(d.bookValue), num(d.roe), num(d.netIncomeLtmGrowth), num(d.netIncomeGrowthQoq), d.bcEconomicSectorName || '', num(d.outstandingSharesValue)] : [Date.now()];
+  };
+  const step = (done, tot) => { if (done % 40 === 0 || done === tot) { ls.set(LKEY.fund, c); if (onBatch) onBatch(done, tot); } };
+  let failed = await pool(need, 3, one, step, 120);
+  if (failed.length) { await sleep(3000); failed = await pool(failed, 2, one, step, 300); }
+  ls.set(LKEY.fund, c);
+}
+
+/* --- Ghép 1 dòng --- */
+function liveRow(t){
+  const b = live.board.get(t), P = live.prior[t], pr = pickPrior(P, b), m = live.meta[t] || [], F = live.fund[t] || [];
+  const ref = b && b.ref > 0 ? b.ref : pr ? pr.lc : null;
+  const price = b && b.price ? b.price : ref;
+  const raw = {ticker:t, exchange:live.exOf[t] || m[2] || 'HOSE', company:m[0] || '', sector:sectorOf(t),
+    price, ref, ceil:b ? b.ceil : null, floor:b ? b.floor : null, open:b ? b.open : null, high:b ? b.high : null, low:b ? b.low : null,
+    volume:b ? b.vol : null, changePct:isNum(price) && ref > 0 ? (price / ref - 1) * 100 : null,
+    value:b && isNum(b.vol) && isNum(b.avg) ? b.vol * b.avg / 1e6 : null,          // tỷ đồng
+    foreignNet:b ? b.fNet / 1e6 : null};                                            // fB/fSValue: nghìn đ → tỷ
+  if (pr && isNum(price)) {
+    const hi = Math.max(price, b && b.high > 0 ? b.high : price), lo = Math.min(price, b && b.low > 0 ? b.low : price);
+    raw.avgVol20 = pr.av20;
+    raw.ma10 = isNum(pr.s9) ? (pr.s9 + price) / 10 : null;
+    raw.ma20 = isNum(pr.s19) ? (pr.s19 + price) / 20 : null;
+    raw.ma50 = isNum(pr.s49) ? (pr.s49 + price) / 50 : null;
+    raw.high52 = Math.max(pr.mxH, hi); raw.low52 = Math.min(pr.mnL, lo);
+    const H20 = Math.max(pr.h19, hi), L20 = Math.min(pr.l19, lo);
+    raw.range20 = L20 > 0 ? (H20 / L20 - 1) * 100 : null;
+    const r0 = ref > 0 ? price / ref - 1 : 0, n = pr.rn + 1, mu = (pr.rs + r0) / n;
+    raw.volatility20 = Math.sqrt(Math.max(0, (pr.rss + r0 * r0) / n - mu * mu)) * 100;
+    raw.volContraction = pr.av10 && pr.av20 ? pr.av10 / pr.av20 : null;
+    raw.maxDownVol10 = pr.mdv;
+    const ret = c => c ? (price / c - 1) * 100 : null;
+    raw.ret1m = ret(pr.c21); raw.ret3m = ret(pr.c63); raw.ret6m = ret(pr.c126); raw.ret12m = ret(pr.c252);
+  }
+  const eps = F[1], bv = F[2], sh = m[3] || F[7];
+  raw.eps = eps; raw.pe = isNum(eps) && eps !== 0 && isNum(price) ? price * 1000 / eps : null;
+  raw.pb = isNum(bv) && bv > 0 && isNum(price) ? price * 1000 / bv : null;
+  raw.roe = F[3]; raw.npatGrowth = F[4]; raw.npatQoq = F[5];
+  raw.marketCap = isNum(sh) && isNum(price) ? sh * price / 1e6 : null;              // tỷ đồng
+  const o = normalizeRow(raw), tech = techFor(t);
+  if (tech) { o.wy = tech.W; o.ic = tech.I; o.wyRank = tech.W.rank; o.icScore = isNum(tech.I.score) ? tech.I.score : null; }
+  return o;
+}
+function rebuildLive(){
+  if (!live.on) return;
+  const list = live.tickers.map(liveRow);
+  buildUniverse(list, false);
+  computeMarket();
+  setDataset(list, 'LIVE · ' + UNIVERSES[live.uni].label, false);
+}
+
+/* --- Vòng đời --- */
+function stopLive(){ live.gen++; live.on = false; live.busy = false; live.phase = ''; setProgress(null); }
+function syncUniSel(){
+  const sel = $('#uniSel');
+  let f = sel.querySelector('option[value="FILE"]');
+  if (state.uni === 'FILE' && !f) { f = document.createElement('option'); f.value = 'FILE'; f.textContent = 'File đã nhập'; sel.appendChild(f); }
+  if (state.uni !== 'FILE' && f) f.remove();
+  sel.value = state.uni;
+}
+async function startLive(uni){
+  if (!UNIVERSES[uni]) uni = 'HOSE';
+  stopLive();
+  const g = live.gen;
+  Object.assign(live, {on:true, uni, busy:true, board:new Map(), prior:{}, barCache:new Map(), bars:{}, tb:new Map(), phase:''});
+  state.uni = uni; saveUI(); syncUniSel();
+  setLive('load', 'Đang tải danh sách mã…'); setProgress(0.03);
+  $('#empty').textContent = 'Đang tải dữ liệu thị trường…';
+  setDataset([], 'Đang tải…', false);
+  try {
+    const selLists = UNIVERSES[uni].lists, mktLists = [...new Set(['hose'].concat(selLists))];
+    const [{exOf, got}, meta] = await Promise.all([loadTickers(mktLists), loadMeta()]);
+    if (g !== live.gen) return;
+    live.meta = meta; live.fund = ls.get(LKEY.fund, {}) || {}; live.mktLists = mktLists;
+    const sel = new Set(); selLists.forEach(l => (got[l] || []).forEach(t => { if (exOf[t]) sel.add(t); }));
+    state.watch.forEach(t => { sel.add(t); if (!exOf[t]) { const f = (meta[t] || [])[2]; exOf[t] = ['HOSE', 'HNX', 'UPCOM'].includes(f) ? f : 'HOSE'; } });
+    live.exOf = exOf;
+    const all = Object.keys(exOf).sort();
+    setLive('load', `Đang tải bảng giá ${all.length} mã…`); setProgress(0.1);
+    const [bd, ix] = await Promise.all([fetchBoard(all), fetchIndices().catch(() => null)]);
+    if (g !== live.gen) return;
+    live.board = bd; if (ix) state.idxLive = ix;
+    live.mkt = all.filter(t => bd.has(t));
+    live.tickers = [...sel].filter(t => bd.has(t)).sort();
+    live.updated = new Date(); live.lastPoll = Date.now();
+    live.busy = false;
+    $('#empty').textContent = 'Không có mã nào thỏa bộ lọc hiện tại.';
+    rebuildLive(); renderIndices();
+    if (state.chartMode === 'sim') drawSim();
+    await loadHistory(g, false);
+    if (g !== live.gen) return;
+    live.phase = ''; setProgress(null); rebuildLive(); liveStatusOk();
+    const missH = live.tickers.filter(t => !live.prior[t]).length;
+    if (missH) toast(`${missH} mã không tải được lịch sử (mã mới niêm yết hoặc lỗi mạng) — các chỉ báo kỹ thuật của chúng để trống.`);
+    live.phase = 'cơ bản…'; liveStatusOk();
+    await loadFund(live.tickers, (d, tot) => { if (g !== live.gen) return; live.phase = `cơ bản ${d}/${tot}`; rebuildLive(); liveStatusOk(); });
+    if (g !== live.gen) return;
+    live.phase = ''; rebuildLive(); liveStatusOk();
+  } catch (e) {
+    if (g !== live.gen) return;
+    live.on = false; live.busy = false; setProgress(null);
+    setLive('err', 'Không kết nối được nguồn dữ liệu');
+    $('#empty').textContent = 'Không có mã nào thỏa bộ lọc hiện tại.';
+    toast('Không tải được dữ liệu thật (' + (e.message || e) + '). Đang dùng Demo — bấm ⟳ để thử lại.', 'err');
+    setDataset(demoUniverse(), 'Demo (mất kết nối)', true);
+  }
+}
+async function liveTick(force){
+  if (!live.on || live.busy || !live.mkt.length) return;
+  if (!force && !(marketOpenNow() && Date.now() - live.lastPoll >= POLL_MS)) return;
+  live.busy = true; const g = live.gen;
+  try {
+    const [bd, ix] = await Promise.all([fetchBoard(live.mkt), fetchIndices().catch(() => null)]);
+    if (g !== live.gen) return;
+    bd.forEach((v, k) => live.board.set(k, v));
+    if (ix) state.idxLive = ix;
+    live.updated = new Date();
+    rebuildLive(); renderIndices(); liveStatusOk();
+    if (state.chartMode === 'sim') drawSim();
+  } catch (e) {
+    if (g === live.gen) setLive('err', `Lỗi cập nhật (${hhmmss(new Date())}) – tự thử lại`);
+  } finally {
+    if (g === live.gen) { live.busy = false; live.lastPoll = Date.now(); }
+  }
+}
+
+/* =========================================================================
+   4c. MARKET STRUCTURE — VNINDEX ex-Vin & CHỈ SỐ NGÀNH
+   Phương pháp (đã kiểm chứng với dữ liệu thật 08/10/2026):
+   • Điểm đóng góp mã i vào VNINDEX = VNI_tham_chiếu × KL_niêm_yết_i × (Giá_i − TC_i) / Σ_HOSE(KL_niêm_yết × TC)
+     (tổng đóng góp tính được −14,50 điểm so với VNINDEX thật −14,42 điểm)
+   • VNI ex-Vin = VNI_tham_chiếu + (ΔVNINDEX thật − Σ điểm nhóm Vin)  → "VNINDEX nếu nhóm Vin đứng giá"
+   • Chỉ số tổng hợp (rổ ex-Vin, ngành): vốn hóa theo KL niêm yết hiện tại, chuỗi liên kết từng ngày (chain-linked)
+     I_t = I_(t-1) × Σ KL·Giá_t / Σ KL·Giá_(t-1) trên các mã có giá cả 2 ngày (xử lý mã mới niêm yết)
+     (chỉ số HOSE dựng lại bám VNINDEX thật: tương quan 0,9993; sai lệch TB 0,02%/ngày trong 81 phiên)
+   ========================================================================= */
+const SECTOR_MAP = {
+  'Thép và sản phẩm thép':'Thép', 'Môi giới chứng khoán':'Chứng khoán', 'Sản xuất & Phân phối Điện':'Điện',
+  'Vật liệu xây dựng & Nội thất':'VLXD & Nội thất', 'Nuôi trồng nông & hải sản':'Nông & Thủy sản', 'Nhựa, cao su & sợi':'Cao su, Nhựa & Sợi',
+  'Kho bãi, hậu cần và bảo dưỡng':'Logistics & Cảng', 'Dịch vụ vận tải':'Logistics & Cảng', 'Chuyển phát nhanh':'Logistics & Cảng',
+  'Hàng May mặc':'Dệt may', 'Sản phẩm hóa dầu, Nông dược & Hóa chất khác':'Hóa chất & Phân bón',
+  'Phân phối xăng dầu & khí đốt':'Dầu khí', 'Sản xuất và Khai thác dầu khí':'Dầu khí', 'Thiết bị và Dịch vụ Dầu khí':'Dầu khí',
+  'Vận tải Thủy':'Vận tải biển', 'Phân phối hàng chuyên dụng':'Bán lẻ', 'Bán lẻ phức hợp':'Bán lẻ', 'Sản xuất ô tô':'Ô tô & Phụ tùng', 'Lốp xe':'Ô tô & Phụ tùng',
+  'Lâm sản và Chế biến gỗ':'Gỗ', 'Sản xuất giấy':'Giấy & Bao bì', 'Containers & Đóng gói':'Giấy & Bao bì',
+  'Bảo hiểm phi nhân thọ':'Bảo hiểm', 'Bảo hiểm nhân thọ':'Bảo hiểm', 'Tư Vấn, Định giá, Môi giới Bất động sản':'Bất động sản',
+  'Phần mềm':'Công nghệ', 'Dịch vụ Máy tính':'Công nghệ', 'Internet':'Công nghệ', 'Thiết bị viễn thông':'Viễn thông', 'Viễn thông cố định':'Viễn thông', 'Viễn thông di động':'Viễn thông',
+  'Sản xuất bia':'Đồ uống', 'Đồ uống & giải khát':'Đồ uống', 'Khách sạn':'Du lịch & Giải trí', 'Dịch vụ giải trí':'Du lịch & Giải trí', 'Vận tải hành khách & Du lịch':'Du lịch & Giải trí',
+  'Dược phẩm':'Y tế & Dược', 'Thiết bị y tế':'Y tế & Dược', 'Chăm sóc y tế':'Y tế & Dược', 'Phân phối thực phẩm':'Thực phẩm', 'Khai khoáng':'Khai khoáng', 'Nước':'Nước'
+};
+const shortSector = s => s ? (SECTOR_MAP[s] || s) : '';
+const vinSet = () => new Set(state.vin);
+const sharesOf = t => { const m = live.meta[t], F = live.fund[t]; return (m && isNum(m[3]) && m[3] > 0) ? m[3] : (F && isNum(F[7]) && F[7] > 0 ? F[7] : null); };
+const sectorOf = t => { const m = live.meta[t], F = live.fund[t]; return shortSector((m && m[1]) || '') || (F && F[6]) || ''; };
+const seriesKey = () => live.mktLists.join('+') + '|' + state.vin.join(',');
+
+/* Gom chuỗi lịch sử theo nhóm (gọi cho từng mã ngay khi tải xong lịch sử) */
+function newAcc(){ return {g:{}, today:vnDate()}; }
+function accumulate(acc, t, j){
+  const sh = sharesOf(t); if (!sh) return;
+  const keys = [], isH = live.exOf[t] === 'HOSE', isVin = vinSet().has(t), sec = sectorOf(t);
+  if (isH) { keys.push('HOSE'); keys.push(isVin ? 'VIN' : 'EXVIN'); }
+  if (sec) keys.push('S:' + sec);
+  for (let i = 1; i < j.t.length; i++) {
+    const d = new Date(j.t[i] * 1000).toISOString().slice(0, 10);
+    if (d === acc.today || !(j.c[i - 1] > 0)) continue;
+    for (const k of keys) { const G = acc.g[k] || (acc.g[k] = {}); const e = G[d] || (G[d] = [0, 0]); e[0] += sh * j.c[i]; e[1] += sh * j.c[i - 1]; }
+  }
+}
+function finalizeSeries(acc, vni){
+  const dset = new Set();
+  Object.values(acc.g).forEach(G => Object.keys(G).forEach(d => dset.add(d)));
+  const vmap = {};
+  if (vni) vni.t.forEach((t, i) => { const d = new Date(t * 1000).toISOString().slice(0, 10); if (d !== acc.today) { vmap[d] = vni.c[i]; dset.add(d); } });
+  const dates = [...dset].sort(), g = {};
+  Object.entries(acc.g).forEach(([k, G]) => {
+    let lvl = null; g[k] = dates.map(d => { const e = G[d]; if (e && e[1] > 0) lvl = (lvl === null ? 1000 : lvl) * e[0] / e[1]; return lvl === null ? null : Math.round(lvl * 1e4) / 1e4; });
+  });
+  return {dates, g, vni:dates.map(d => isNum(vmap[d]) ? vmap[d] : null)};
+}
+
+/* Tính trạng thái thị trường theo bảng giá hiện tại */
+function computeMarket(){
+  if (!live.on || !live.board.size) { state.mkt = null; return; }
+  const vin = vinSet(), grp = {}, contrib = [];
+  const G = k => grp[k] || (grp[k] = {num:0, den:0, n:0, adv:0, dec:0, ceil:0, floor:0, val:0});
+  const rows = [];
+  for (const t of live.mkt) {
+    const b = live.board.get(t), sh = sharesOf(t); if (!b || !sh || !(b.ref > 0)) continue;
+    const p = b.price || b.ref, isH = live.exOf[t] === 'HOSE', sec = sectorOf(t);
+    const ks = []; if (isH) { ks.push('HOSE', vin.has(t) ? 'VIN' : 'EXVIN'); } if (sec) ks.push('S:' + sec);
+    const up = p > b.ref + 1e-9, dn = p < b.ref - 1e-9, ce = isNum(b.ceil) && p >= b.ceil - 1e-9 && up, fl = isNum(b.floor) && p <= b.floor + 1e-9 && dn;
+    const val = isNum(b.vol) && isNum(b.avg) ? b.vol * b.avg / 1e6 : 0;
+    ks.forEach(k => { const x = G(k); x.num += sh * p; x.den += sh * b.ref; x.n++; if (up) x.adv++; if (dn) x.dec++; if (ce) x.ceil++; if (fl) x.floor++; x.val += val; });
+    if (isH) rows.push({t, sh, p, ref:b.ref});
+  }
+  const vi = state.idxLive && state.idxLive.VNINDEX, H = grp.HOSE;
+  let vni = null;
+  if (vi && isNum(vi.last) && isNum(vi.chgPts) && H && H.den > 0) {
+    const prev = vi.last - vi.chgPts;
+    rows.forEach(r => contrib.push({t:r.t, pts:prev * r.sh * (r.p - r.ref) / H.den, pct:(r.p / r.ref - 1) * 100}));
+    const vinPts = contrib.filter(c => vin.has(c.t)).reduce((s, c) => s + c.pts, 0), sumPts = contrib.reduce((s, c) => s + c.pts, 0);
+    const exPts = vi.chgPts - vinPts;
+    vni = {prev, last:vi.last, chgPts:vi.chgPts, chg:vi.chg, vinPts, sumPts, exPts, exLevel:prev + exPts, exPct:exPts / prev * 100,
+           exBasketPct:grp.EXVIN && grp.EXVIN.den ? (grp.EXVIN.num / grp.EXVIN.den - 1) * 100 : null,
+           vinBasketPct:grp.VIN && grp.VIN.den ? (grp.VIN.num / grp.VIN.den - 1) * 100 : null,
+           vinList:contrib.filter(c => vin.has(c.t)).sort((a, b) => a.pts - b.pts)};
+    contrib.sort((a, b) => b.pts - a.pts);
+  }
+  /* Chuỗi lịch sử: có nối thêm điểm "hôm nay" từ bảng giá hay không (tránh đếm trùng ngày nghỉ/cuối tuần) */
+  const S = live.series, n = S ? S.dates.length : 0;
+  let appendToday = true;
+  if (S && vi && isNum(vi.last)) { const lastV = S.vni.filter(isNum).pop(); if (isNum(lastV) && Math.abs(lastV - vi.last) < 0.005) appendToday = false; }
+  const levelNow = (k, f) => { if (!S || !S.g[k]) return null; const arr = S.g[k]; const last = arr[n - 1]; return isNum(last) ? (appendToday ? last * f : last) : null; };
+  const retK = (k, f, sess) => { if (!S || !S.g[k]) return null; const arr = S.g[k], now = levelNow(k, f); const idx = appendToday ? n - sess : n - 1 - sess; const base = idx >= 0 ? arr[idx] : null; return isNum(now) && isNum(base) && base > 0 ? (now / base - 1) * 100 : null; };
+  const sectors = Object.entries(grp).filter(([k]) => k.startsWith('S:')).map(([k, x]) => {
+    const f = x.den > 0 ? x.num / x.den : 1;
+    return {key:k, label:k.slice(2), n:x.n, pct:(f - 1) * 100, adv:x.adv, dec:x.dec, ceil:x.ceil, floor:x.floor, val:x.val, mcap:x.num / 1e6,
+            r1w:retK(k, f, 5), r1m:retK(k, f, 21), r3m:retK(k, f, 63)};
+  });
+  /* RS ngành: percentile của return tổng hợp 1T/3T giữa các ngành (≥ 3 mã) */
+  const ranked = sectors.filter(s => s.n >= 3 && (isNum(s.r1m) || isNum(s.r3m))).map(s => ({s, v:(isNum(s.r1m) ? s.r1m : 0) * 0.4 + (isNum(s.r3m) ? s.r3m : 0) * 0.6})).sort((a, b) => a.v - b.v);
+  ranked.forEach((x, i) => x.s.rs = ranked.length > 1 ? Math.round(1 + 98 * i / (ranked.length - 1)) : 50);
+  const exF = grp.EXVIN && grp.EXVIN.den ? grp.EXVIN.num / grp.EXVIN.den : 1, hF = H && H.den ? H.num / H.den : 1;
+  state.mkt = {vni, contrib, sectors, secMap:Object.fromEntries(sectors.map(s => [s.label, s])), appendToday,
+               ex:{r1w:retK('EXVIN', exF, 5), r1m:retK('EXVIN', exF, 21), r3m:retK('EXVIN', exF, 63)},
+               hose:{r1w:retK('HOSE', hF, 5), r1m:retK('HOSE', hF, 21), r3m:retK('HOSE', hF, 63)},
+               factors:Object.fromEntries(Object.entries(grp).map(([k, x]) => [k, x.den > 0 ? x.num / x.den : 1])),
+               scope:live.mktLists.map(l => LIST_EX[l]).filter((v, i, a) => a.indexOf(v) === i).join('+')};
+}
+
+/* Tải lịch sử cho toàn bộ "market set" + VNINDEX, dựng prior từng mã và chuỗi chỉ số nhóm */
+async function loadHistory(g, forceSeries){
+  const today = vnDate(), hc = ls.get(LKEY.hist, null), sc = forceSeries ? null : ls.get(LKEY.series, null), key = seriesKey();
+  if (!Object.keys(live.prior).length) live.prior = hc && hc.date === today && hc.map ? hc.map : {};
+  live.series = sc && sc.date === today && sc.key === key ? sc.s : null;
+  const needSeries = !live.series;
+  const uni = new Set(live.tickers);
+  const need = needSeries ? live.mkt.concat(['VNINDEX']) : live.mkt.filter(t => !live.prior[t] || (uni.has(t) && !live.bars[t]));
+  if (!need.length) return;
+  const acc = needSeries ? newAcc() : null; let vniJ = null, lastR = Date.now();
+  live.phase = `lịch sử 0/${need.length}`; setLive('load', `Đang tải lịch sử giá 0/${need.length}…`);
+  await pool(need, 8, async t => {
+    const j = await fetchHist(t);
+    if (g !== live.gen) return;
+    if (t === 'VNINDEX') { vniJ = j; return; }
+    const e = histEntry(j); if (e) live.prior[t] = e;
+    if (uni.has(t)) { const k = Math.max(0, j.t.length - 300); live.bars[t] = {d:j.t.slice(k).map(x => new Date(x * 1000).toISOString().slice(0, 10)), o:j.o.slice(k), h:j.h.slice(k), l:j.l.slice(k), c:j.c.slice(k), v:j.v.slice(k)}; }
+    if (acc) accumulate(acc, t, j);
+  }, (d, tot) => {
+    if (g !== live.gen) return;
+    setProgress(0.1 + 0.85 * d / tot); setLive('load', `Đang tải lịch sử giá ${d}/${tot}…`);
+    if (Date.now() - lastR > 2000) { lastR = Date.now(); rebuildLive(); }
+  });
+  if (g !== live.gen) return;
+  if (acc) { live.series = finalizeSeries(acc, vniJ); if (!ls.set(LKEY.series, {date:today, key, s:live.series})) ls.del(LKEY.series); }
+  if (!ls.set(LKEY.hist, {date:today, map:live.prior})) ls.del(LKEY.hist);
+}
+async function rebuildSeries(){
+  if (!live.on || !live.mkt.length) return;
+  const g = live.gen;
+  await loadHistory(g, true);
+  if (g !== live.gen) return;
+  live.phase = ''; setProgress(null); rebuildLive(); liveStatusOk();
+  if (state.chartMode === 'sim') drawSim();
+}
+
+/* =========================================================================
+   4d. WYCKOFF/VSA & ICHIMOKU ENGINE
+   • Công thức Wyckoff PORT NGUYÊN VĂN từ AFL của radar Sếp:
+       ORION.apx (SprPct/RelSpr/ClsPos/UpWick · lowN/lowPct/dn20 · maCreep/bsHiVol · cản chéo pkSlope/capCheoGap/cgPrev ·
+                  pivotal pivLvl/pivCnt/pivDist · Pivot xác nhận pvBar/pv5/bsPivot · CSok)
+       Loc_TichLuy_Vung_Dinh.afl v3 (Loại 1 "SUPPER" tích luỹ sát đỉnh · Loại 2 "RU BO 3T" nền 3 tháng + rũ bỏ + cản chéo)
+       §15.36 mô hình 2 đáy (db2) · §15.38 break-out cản chéo VỪA vượt · bảng Bar nhanh VSA.
+   • Ichimoku hệ 9·17·26·26 + 2 dao găm 65/129 (Ichimoku 2 AFL): TK9 · KJ17 · SpanA=(TK+KJ)/2 · SpanB 26 · mây dịch 26 ·
+     quy tắc 18% · hợp bích 5% · mất dao găm ≥3 nến · Double Kumo Breakout · Khách sạn.
+   • Mọi cờ là cờ THÔNG TIN — KHÔNG tự đổi Radar Score/tier (§15.21, §15.28).
+   • Chỉ dùng giá + khối lượng (§13.71). Nến hiện tại = nến phiên đang giao dịch ghép từ bảng giá VPS.
+   ========================================================================= */
+function rollMid(H, L, len){ const n = H.length, out = new Array(n).fill(null); for (let j = len - 1; j < n; j++) { let mx = -Infinity, mn = Infinity; for (let k = j - len + 1; k <= j; k++) { if (H[k] > mx) mx = H[k]; if (L[k] < mn) mn = L[k]; } out[j] = (mx + mn) / 2; } return out; }
+function rollMA(A, len){ const n = A.length, out = new Array(n).fill(null); for (let j = len - 1; j < n; j++) { let s = 0; for (let k = j - len + 1; k <= j; k++) s += A[k]; out[j] = s / len; } return out; }   // cộng trực tiếp từng cửa sổ: tránh sai số cộng dồn làm lật phép so sánh khi giá = MA
+function midAt(H, L, j, len){ if (j - len + 1 < 0) return null; let mx = -Infinity, mn = Infinity; for (let k = j - len + 1; k <= j; k++) { if (H[k] > mx) mx = H[k]; if (L[k] < mn) mn = L[k]; } return (mx + mn) / 2; }
+function maAt(A, j, len){ if (j - len + 1 < 0) return null; let s = 0; for (let k = j - len + 1; k <= j; k++) s += A[k]; return s / len; }
+const hhvAt = (A, j, len) => { if (j - len + 1 < 0) return null; let m = -Infinity; for (let k = j - len + 1; k <= j; k++) if (A[k] > m) m = A[k]; return m; };
+const llvAt = (A, j, len) => { if (j - len + 1 < 0) return null; let m = Infinity; for (let k = j - len + 1; k <= j; k++) if (A[k] < m) m = A[k]; return m; };
+const hhvBarsAt = (A, j, len) => { if (j - len + 1 < 0) return null; let m = -Infinity, b = 0; for (let k = j - len + 1; k <= j; k++) if (A[k] >= m) { m = A[k]; b = j - k; } return b; };
+const llvBarsAt = (A, j, len) => { if (j - len + 1 < 0) return null; let m = Infinity, b = 0; for (let k = j - len + 1; k <= j; k++) if (A[k] <= m) { m = A[k]; b = j - k; } return b; };
+
+/* Mảng tĩnh (các phiên ĐÃ đóng) — tính 1 lần/ngày/mã */
+function buildStatic(B, nb){
+  const o = B.o.slice(0, nb), h = B.h.slice(0, nb), l = B.l.slice(0, nb), c = B.c.slice(0, nb), v = B.v.slice(0, nb), d = B.d.slice(0, nb);
+  const tk = rollMid(h, l, 9), kj = rollMid(h, l, 17), sb = rollMid(h, l, 26), kn = rollMid(h, l, 65), kn2 = rollMid(h, l, 129);
+  const sa = tk.map((x, j) => x !== null && kj[j] !== null ? (x + kj[j]) / 2 : null);
+  const spr = h.map((x, j) => x - l[j]);
+  return {nb, o, h, l, c, v, d, tk, kj, sa, sb, kn, kn2, mav20:rollMA(v, 20), spra:rollMA(spr, 20), spr, ma10:rollMA(c, 10), ma20:rollMA(c, 20), ma50:rollMA(c, 50)};
+}
+/* Phiên đang hiển thị trên bảng giá có trùng nến cuối của lịch sử không (tránh đếm trùng) */
+function baseLenOf(t){
+  const B = live.bars[t]; if (!B) return 0;
+  const b = live.board.get(t); let n = B.c.length;
+  if (B.d[n - 1] === vnDate()) return n - 1;
+  if (b && isNum(b.price) && Math.abs(B.c[n - 1] - b.price) < 1e-6 && isNum(b.vol) && b.vol > 0 && Math.abs(B.v[n - 1] - b.vol) / Math.max(B.v[n - 1], b.vol) < 0.03) return n - 1;
+  return n;
+}
+/* Chuỗi đầy đủ = phiên đã đóng + nến phiên hiện tại (nếu đã có giao dịch) */
+function techSeries(t){
+  const B = live.bars[t]; if (!B || B.c.length < 30) return null;
+  const nb = baseLenOf(t);
+  let T = live.tb.get(t);
+  if (!T || T.nb !== nb || T.src !== B) { T = buildStatic(B, nb); T.src = B; live.tb.set(t, T); }
+  const b = live.board.get(t);
+  const p = b && b.price > 0 ? b.price : null;
+  if (!p || !(b.vol > 0)) return Object.assign({i:nb - 1, live:false}, T);
+  const td = {o:b.open > 0 ? b.open : (b.ref || p), h:Math.max(b.high > 0 ? b.high : p, p), l:Math.min(b.low > 0 ? b.low : p, p), c:p, v:b.vol, d:vnDate()};
+  const X = {i:nb, live:true, nb};
+  ['o', 'h', 'l', 'c', 'v', 'd'].forEach(k => X[k] = T[k].concat([td[k]]));
+  const i = nb, H = X.h, L = X.l;
+  X.spr = T.spr.concat([td.h - td.l]);
+  const ext = (k, val) => X[k] = T[k].concat([val]);
+  const tk = midAt(H, L, i, 9), kj = midAt(H, L, i, 17);
+  ext('tk', tk); ext('kj', kj); ext('sb', midAt(H, L, i, 26)); ext('kn', midAt(H, L, i, 65)); ext('kn2', midAt(H, L, i, 129));
+  ext('sa', tk !== null && kj !== null ? (tk + kj) / 2 : null);
+  ext('mav20', maAt(X.v, i, 20)); ext('spra', maAt(X.spr, i, 20)); ext('ma10', maAt(X.c, i, 10)); ext('ma20', maAt(X.c, i, 20)); ext('ma50', maAt(X.c, i, 50));
+  return X;
+}
+
+/* Bảng Bar nhanh VSA (SKILL vsa-wyckoff) — Up/Down × Vol × Spread × Close */
+function vsaBar(up, relVol, relSpr, clsPos, upWick){
+  if (!isNum(relVol) || !isNum(relSpr)) return null;
+  if (up) {
+    if (relVol >= 1.5 && relSpr >= 1.2 && clsPos >= 60) return {k:'SOS', t:'SOS bar — SM mua mạnh', s:1};
+    if (relVol >= 1.5 && relSpr < 1 && clsPos < 50) return {k:'BCLX', t:'BCLX — SM bán vào cầu (vol lớn, biên hẹp, đóng thấp)', s:-1};
+    if (relVol < 0.8) return {k:'ND', t:'No Demand — tăng không có cầu', s:0};
+  } else {
+    if (relVol >= 1.5 && relSpr >= 1.2 && clsPos <= 40) return {k:'SOW', t:'SOW — SM bán mạnh', s:-1};
+    if (relVol >= 1.5 && relSpr < 1 && clsPos >= 60) return {k:'SV', t:'Stopping Volume — SM mua hấp thụ', s:1};
+    if (relVol < 0.8 && relSpr < 0.8 && clsPos >= 50) return {k:'NS', t:'No Supply — cung cạn, sắp đảo chiều', s:1};
+    if (relVol < 0.8 && relSpr < 0.8) return {k:'LD', t:'Lack of Demand — yếu nhưng không nguy', s:0};
+  }
+  if (isNum(upWick) && upWick >= 40 && relVol >= 1.2) return {k:'RUC', t:'Rục đầu — bóng trên ≥40% + vol ≥1,2×', s:-1};
+  return null;
+}
+
+function techSignals(X){
+  const i = X.i; if (i < 30) return null;
+  const {o, h, l, c, v} = X;
+  const C = c[i], O = o[i], H = h[i], L = l[i], V = v[i], PC = c[i - 1];
+  const W = {}, I = {};
+  /* --- Hình dạng nến (ORION.apx) --- */
+  const SPR = H - L, SPRA = X.spra[i];
+  const relVol = X.mav20[i] > 0 ? V / X.mav20[i] : null;            // RelVol AFL: V / MA(V,20) gồm cả phiên hiện tại
+  const relSpr = SPRA > 0 ? SPR / SPRA : null, clsPos = SPR > 0 ? 100 * (C - L) / SPR : 50, upWick = SPR > 0 ? 100 * (H - Math.max(C, O)) / SPR : 0;
+  Object.assign(W, {relVol, relSpr, clsPos, upWick, sprPct:PC > 0 ? 100 * SPR / PC : null});
+  W.bar = vsaBar(C > PC, relVol, relSpr, clsPos, upWick);
+  /* --- lowN / lowPct / dn20 (§13.97) --- */
+  const llo = llvAt(l, i, 120), lowN = llvBarsAt(l, i, 120);
+  W.lowN = lowN; W.lowPct = llo > 0 ? 100 * (C / llo - 1) : null;
+  let dn = 0; for (let k = Math.max(1, i - 19); k <= i; k++) if (c[k] < c[k - 1]) dn++;
+  W.dn20 = 5 * dn; W.lowHeld = isNum(lowN) && lowN >= 20 && W.dn20 >= 30;
+  /* --- maCreep / bsHiVol (§13.98) --- */
+  let mc = 0; for (let k = i; k >= 0; k--) { if (X.ma10[k] !== null && X.ma20[k] !== null && c[k] > X.ma10[k] && c[k] > X.ma20[k]) mc++; else break; }
+  let bhv = 999; for (let k = i; k >= Math.max(0, i - 250); k--) if (X.mav20[k] && v[k] >= 1.5 * X.mav20[k]) { bhv = i - k; break; }
+  W.maCreep = mc; W.bsHiVol = bhv; W.maCreepQuiet = mc >= 3 && bhv >= mc;
+  /* --- Cản chéo §13.103/§15.28 (hai cột gác chung hasCap — §15.28H) --- */
+  const cap = j => {
+    if (j - 1 - 60 - 59 < 0) return {has:false, slope:0, gap:-999};
+    const hR = hhvAt(h, j - 1, 60), bR = hhvBarsAt(h, j - 1, 60) + 1, hO = hhvAt(h, j - 61, 60), bO = hhvBarsAt(h, j - 61, 60) + 61;
+    const dB = bO - bR, slp = dB > 0 ? (hR - hO) / dB : 0, lnNow = hR + slp * bR, loLim = llvAt(l, j, 60);
+    const has = hR > 0 && hO > 0 && hR < hO && dB > 0 && lnNow > 0 && lnNow >= loLim;
+    return {has, slope:has ? 100 * slp / hR : 0, gap:has ? 100 * (c[j] / lnNow - 1) : -999, line:has ? lnNow : null};
+  };
+  const cg = cap(i), cgp = cap(i - 1);
+  W.pkSlope = cg.slope; W.capGap = cg.gap; W.cgPrev = cgp.gap; W.capLine = cg.line;
+  W.boCap = cg.has && cg.gap > 0 && cgp.gap <= 0 && relVol >= 1.5 && clsPos >= 50 && relSpr >= 1;      // §15.38: VỪA vượt + vol + đóng mạnh + biên rộng
+  W.capState = !cg.has ? '' : cg.gap > 0 ? (cgp.gap <= 0 ? (W.boCap ? 'BO_XN' : 'BO_CHUA') : 'TREN') : (cg.gap >= -3 ? 'SAT' : 'DUOI');
+  /* --- Pivot xác nhận (tier_gate PIVOT_XAC_NHAN: tăng + vol ≥1,5× + trên DG65 + CSok) --- */
+  const pvBar = j => j >= 26 && c[j] > c[j - 1] && X.mav20[j] && v[j] >= 1.5 * X.mav20[j] && X.kn[j] !== null && c[j] > X.kn[j] && c[j] > h[j - 26];
+  let pv5 = 0; for (let k = i; k > i - 5; k--) if (pvBar(k)) pv5++;
+  let bsPv = 999; for (let k = i; k >= Math.max(26, i - 60); k--) if (pvBar(k)) { bsPv = i - k; break; }
+  W.pv5 = pv5; W.bsPivot = bsPv; W.pivotToday = pvBar(i);
+  /* --- Pivotal §13.111: mức giá bị chạm nhiều nhất trong 90 phiên (20 ngăn) --- */
+  if (i >= 89) {
+    const mnLo = llvAt(l, i, 90), mxHi = hhvAt(h, i, 90), rngP = mxHi - mnLo, binW = rngP > 0 ? rngP / 20 : mnLo * 0.01 + 0.01;
+    let bestC = 0, bestL = mnLo;
+    for (let kk = 0; kk < 20; kk++) { const Lk = mnLo + (kk + 0.5) * binW; let ck = 0; for (let k = i - 89; k <= i; k++) if (l[k] <= Lk && h[k] >= Lk) ck++; if (ck > bestC) { bestC = ck; bestL = Lk; } }
+    W.pivLvl = bestL > 0 ? bestL : null; W.pivCnt = bestC; W.pivDist = bestL > 0 ? 100 * (C - bestL) / bestL : null;
+  }
+  /* --- Dao găm & các mốc chung --- */
+  let gs = 0, gn = 0; for (let k = Math.max(0, i - 19); k <= i; k++) { gs += c[k] * v[k]; gn++; }
+  const KN = X.kn[i], KN2 = X.kn2[i], gtgd = gn ? gs / gn / 1e6 : null;   // GTGD TB20 (tỷ) — giá nghìn đ
+  const pDG65 = KN ? 100 * (C / KN - 1) : null, maMid = X.ma50[i], maFast = X.ma20[i], maMid10 = i >= 10 ? X.ma50[i - 10] : null;
+  /* --- LOẠI 1 "SUPPER" — tích luỹ sát đỉnh 52W (Loc_TichLuy v3, tham số mặc định) --- */
+  if (i >= 251 && maMid && maFast && maMid10 && KN) {
+    const HH52 = hhvAt(h, i, 252), distTop = 100 * (HH52 - C) / HH52;
+    const bHi = hhvAt(h, i, 25), bLo = llvAt(l, i, 25), baseRng25 = 100 * (bHi - bLo) / bLo;
+    const vBase = maAt(v, i, 25), vPrev = maAt(v, i - 25, 25), volRat = vPrev > 0 ? vBase / vPrev : 10;
+    const maUp = maMid >= maMid10 * (1 - 0.01);
+    const strongAbove = C > maMid && C > maFast, pullbackOK = C > maMid * 0.97 && C > maFast * 0.97 && maUp && relVol < 1.0;
+    const pd1 = 100 * (C / PC - 1), notSurging = relVol < 1.5 && Math.abs(pd1) < 4;
+    const dgCore = C > KN || (C > KN * 0.97 && relVol < 1.0 && maUp), dgOK = dgCore && pDG65 <= 18;
+    W.l1 = distTop <= 15 && baseRng25 <= 18 && volRat <= 0.9 && (strongAbove || pullbackOK) && maUp && notSurging && dgOK && gtgd >= 10;
+    Object.assign(W, {distTop, baseRng25, volRat, hoiNen:pullbackOK && !strongAbove});
+  }
+  /* --- LOẠI 2 "RU BO 3T" — nền ~3 tháng + rũ bỏ (Spring) + sát/đã vượt cản chéo --- */
+  if (i >= 63 + 50) {
+    const b3Hi = hhvAt(h, i, 63), b3Lo = llvAt(l, i, 63), baseRng3 = 100 * (b3Hi - b3Lo) / b3Lo, drift = 100 * (C / c[i - 63] - 1);
+    const notDown = maMid >= X.ma50[i - 63] * 0.95, mature = baseRng3 <= 30 && Math.abs(drift) <= 15 && notDown;
+    const spring = j => { if (j < 41) return false; const ps = llvAt(l, j - 1, 40); return l[j] < ps && c[j] > ps && (c[j] - l[j]) >= 0.5 * (h[j] - l[j] + 1e-6); };
+    let nSince = 999; for (let k = i; k >= Math.max(41, i - 62); k--) if (spring(k)) { nSince = i - k; break; }
+    const spLow = llvAt(l, i, 30), springOK = nSince < 30 && C >= spLow * 1.02 && C > spLow;
+    W.l2 = mature && springOK && gtgd >= 10 && W.capGap >= -3;
+    W.springN = nSince; W.spring5 = nSince <= 4;
+    W.springRV = nSince < 999 && X.mav20[i - nSince] ? v[i - nSince] / X.mav20[i - nSince] : null;
+    Object.assign(W, {baseRng3, drift, springLow:spLow});
+  }
+  W.loai = W.l1 && W.l2 ? 'Loại 1+2' : W.l2 ? 'Loại 2' : W.l1 ? 'Loại 1' : '';
+  /* --- Mô hình 2 đáy §15.36 (⛔ cấm đọc "sắp nảy") --- */
+  const H250 = i >= 249 ? hhvAt(h, i, 250) : null, dist52 = H250 ? 100 * (C / H250 - 1) : null;   // như AFL HHV(H,250): thiếu 250 phiên ⇒ rỗng
+  W.db2 = isNum(dist52) && dist52 <= -20 && isNum(lowN) && lowN >= 20 && lowN <= 70 && isNum(W.lowPct) && W.lowPct <= 18 && relVol < 0.85 && clsPos >= 40;
+  W.gtgd = gtgd;
+
+  /* ================= ICHIMOKU 9·17·26·26 + DG65/129 ================= */
+  const tk = X.tk, kj = X.kj, sa = X.sa, sb = X.sb, kn = X.kn;
+  const TK = tk[i], KJ = kj[i];
+  if (TK !== null && KJ !== null && i >= 52 + 25) {
+    const cTop = Math.max(sa[i - 26], sb[i - 26]), cBot = Math.min(sa[i - 26], sb[i - 26]);           // Mây tại phiên hiện tại = tính từ 26 phiên trước
+    const aoHi = Math.max(TK, KJ), aoLo = Math.min(TK, KJ);
+    I.trend = aoLo > cTop ? 'up' : aoHi < cBot ? 'down' : 'side';                                          // B1: Ao Sen vs Mây
+    const tkUp = TK >= tk[i - 1], kjUp = KJ >= kj[i - 1], gap = Math.abs(TK - KJ) / KJ;
+    I.state = TK > KJ && tkUp && kjUp ? 'hbUp' : TK < KJ && !tkUp && !kjUp ? 'hbDn' : 'flat';               // B2: 2 kiếm
+    I.chap = gap <= 0.05; I.bom = I.chap && tkUp && kjUp && TK >= KJ && relVol >= 1;                          // "2 Kiếm Bơm": chập ≤5% + đẩy lên + đủ vol
+    const csAll = j => { const a = Math.max(tk[j - 26], kj[j - 26], sa[j - 52], sb[j - 52]), b = Math.min(tk[j - 26], kj[j - 26], sa[j - 52], sb[j - 52]); return c[j] > a ? 1 : c[j] < b ? -1 : 0; };
+    const cs = csAll(i);
+    I.cs = cs; I.csOk = C > h[i - 26]; I.csClean = cs === 1 && I.csOk;                                        // B3: đường trẻ
+    const caTop = Math.max(sa[i - 52], sb[i - 52]), caBot = Math.min(sa[i - 52], sb[i - 52]);
+    I.csInCloud = C <= caTop && C >= caBot;
+    I.pKJ = 100 * (C / KJ - 1); I.pDG65 = pDG65; I.pDG129 = KN2 ? 100 * (C / KN2 - 1) : null;            // B4: HT/KC
+    I.dg65Flat = kn[i - 5] ? Math.abs(KN / kn[i - 5] - 1) < 0.01 : false;
+    I.ob18 = I.dg65Flat && pDG65 > 18; I.os18 = I.dg65Flat && pDG65 < -18;                                   // quy tắc 18%
+    let below = 0; for (let k = i; k >= 0 && kn[k] !== null && c[k] < kn[k]; k--) below++;
+    I.belowDG = below; I.lostDG = below >= 3;                                                              // mất dao găm ≥3 nến
+    let touched = false; for (let k = i - 20; k < i; k++) if (k >= 0 && kn[k] !== null && l[k] <= kn[k] * 1.02) touched = true;
+    I.firstDG = C >= KN && C <= KN * 1.02 && !touched;                                                     // về DG65 lần đầu (cách ≤2%)
+    let ksFlat = true; for (let k = i - 4; k <= i; k++) if (Math.abs(kj[k] / kj[i] - 1) > 0.001) ksFlat = false;
+    I.ks = ksFlat && TK > KJ * 1.02;                                                                       // Khách sạn: KJ phẳng ≥5 nến + TK đi xa
+    let wasNot = false; for (let k = i - 5; k < i; k++) if (csAll(k) !== 1) wasNot = true;
+    I.dkb = I.csClean && wasNot && I.chap && tkUp && kjUp && sa[i] >= sa[i - 1] && sb[i] >= sb[i - 1];      // Double Kumo Breakout (≤5 phiên)
+    I.score = (I.trend === 'up') + (TK > KJ) + (I.csClean ? 1 : 0) + (C > KJ) + (C > KN);
+    I.buy = I.score === 5 && !I.ob18 && pDG65 <= 18;
+    Object.assign(I, {TK, KJ, KN, KN2, cTop, cBot, SA:sa[i], SB:sb[i]});
+  }
+  /* --- Nhãn tổng hợp Wyckoff (ưu tiên giảm dần) + cảnh báo --- */
+  const warn = [];
+  if (W.bar && W.bar.s < 0) warn.push(W.bar.k);
+  if (I.lostDG) warn.push('Mất DG65');
+  if (I.ob18) warn.push('Quá 18%');
+  W.warn = warn;
+  const lab = W.loai === 'Loại 1+2' ? ['Loại 1+2', 9] : W.boCap ? ['BO cản chéo', 8] : W.pv5 > 0 ? ['Pivot ' + (W.bsPivot === 0 ? 'hôm nay' : W.bsPivot + 'p'), 7]
+    : W.l2 ? ['Loại 2', 6] : W.l1 ? ['Loại 1', 5] : W.spring5 ? ['Spring ' + W.springN + 'p', 4] : W.bar && W.bar.k === 'NS' ? ['No Supply', 3]
+    : W.maCreepQuiet ? ['Bò MA10/20', 2] : W.lowHeld ? ['Cạn cung giá', 1.5] : W.db2 ? ['2 đáy', 1] : ['', 0];
+  W.label = lab[0]; W.rank = lab[1] - (warn.length ? 0.5 : 0);
+  return {W, I};
+}
+function techFor(t){ const X = techSeries(t); return X ? techSignals(X) : null; }
+
+/* =========================================================================
+   5. RENDER — HEADER
+   ========================================================================= */
+const idxData = ix => { const d = state.idxLive && state.idxLive[ix.key]; return d && isNum(d.last) ? Object.assign({live:true}, ix, d) : Object.assign({live:false}, ix); };
+function renderIndices(){
+  if (typeof fitHeader === 'function') setTimeout(fitHeader, 0);
+  $('#indices').innerHTML = INDICES.map(ix0 => {
+    const ix = idxData(ix0), cls = ix.chg > 0 ? 'up' : ix.chg < 0 ? 'down' : 'ref';
+    const tip = ix.live ? `${ix.name} · Tăng ${ix.adv ?? '—'} · Giảm ${ix.dec ?? '—'} · Đứng ${ix.unc ?? '—'} · GTGD ${isNum(ix.value) ? fmtInt(ix.value / 1000) + ' tỷ' : '—'}` : ix.name + ' · số liệu DEMO';
+    return `<button class="idx ${state.activeIndex === ix.key && !state.selected ? 'on' : ''}" data-idx="${ix.key}" title="${esc(tip)}">
+      <span class="in">${ix.label}${ix.live ? '' : ' <span class="tag">DEMO</span>'}</span>
+      <span class="iv ${cls}">${fmtIdx(ix.last)}</span>
+      <span class="ic ${cls}">${ix.chg > 0 ? '▲' : ix.chg < 0 ? '▼' : '■'} ${isNum(ix.chgPts) ? (ix.chgPts > 0 ? '+' : '') + ix.chgPts.toFixed(2) + ' ' : ''}${fmtPct(ix.chg)}</span>
+      <span class="ivol">${ix.live && isNum(ix.value) ? 'GT ' + fmtInt(ix.value / 1000) + ' tỷ' : 'Vol ' + fmtVol(ix.vol)}</span></button>`;
+  }).join('') + exVinTile();
+}
+function exVinTile(){
+  const v = state.mkt && state.mkt.vni; if (!v) return '';
+  const cls = v.exPts > 0.005 ? 'up' : v.exPts < -0.005 ? 'down' : 'ref', vc = v.vinPts > 0 ? 'up' : v.vinPts < 0 ? 'down' : 'ref';
+  const tip = `VNINDEX nếu nhóm Vin (${state.vin.join(', ')}) đứng giá.\nVNINDEX ${v.chgPts >= 0 ? '+' : ''}${v.chgPts.toFixed(2)} điểm = Vin ${v.vinPts >= 0 ? '+' : ''}${v.vinPts.toFixed(2)} + phần còn lại ${v.exPts >= 0 ? '+' : ''}${v.exPts.toFixed(2)}.\nBấm để xem biểu đồ VNINDEX vs ex-Vin.`;
+  return `<button class="idx ex ${state.activeIndex === 'EXVIN' && !state.selected ? 'on' : ''}" data-idx="EXVIN" title="${esc(tip)}">
+    <span class="in">VNI ex-Vin</span>
+    <span class="iv ${cls}">${fmtIdx(v.exLevel)}</span>
+    <span class="ic ${cls}">${v.exPts > 0 ? '▲' : v.exPts < 0 ? '▼' : '■'} ${(v.exPts > 0 ? '+' : '') + v.exPts.toFixed(2)} ${fmtPct(v.exPct)}</span>
+    <span class="ivol">Vin: <span class="${vc}">${(v.vinPts > 0 ? '+' : '') + v.vinPts.toFixed(2)} đ</span></span></button>`;
+}
+function breadthOf(list){
+  const c = {ceil:0, up:0, ref:0, down:0, floor:0};
+  list.forEach(o => c[o.state]++);
+  return {...c, adv:c.ceil + c.up, dec:c.down + c.floor, unc:c.ref, n:list.length};
+}
+function renderBreadthHeader(){
+  const b = breadthOf(state.data), n = b.n || 1, seg = (v, col) => `<span style="width:${v / n * 100}%;background:var(--${col})"></span>`;
+  $('#breadthH').innerHTML = `<div class="sec-h">Market Breadth · ${esc(state.source)} (${b.n} mã)</div>
+    <div class="bh-row"><span class="up">ADV ${b.adv}</span>|<span class="down">DEC ${b.dec}</span>|<span class="ref">UNC ${b.unc}</span>|<span class="ceil">CE ${b.ceil}</span>|<span class="floor">FL ${b.floor}</span></div>
+    <div class="bar">${seg(b.ceil,'ceil')}${seg(b.up,'up')}${seg(b.ref,'ref')}${seg(b.down,'down')}${seg(b.floor,'floor')}</div>`;
+}
+
+/* =========================================================================
+   6. RENDER — SIDEBAR
+   ========================================================================= */
+function renderChips(){
+  const base = state.data.filter(scopeMatch), hasTech = base.some(o => o.wy);
+  const chip = (k, f) => `<button class="chip ${f.g === 'wy' ? 'w' : f.g === 'ic' ? 'i' : ''} ${f.warn ? 'warn' : ''} ${state.quick.has(k) ? 'on' : ''}" data-q="${k}" title="${esc(f.tag + ' — ' + f.hint + (f.g && !hasTech ? ' (cần dữ liệu Live)' : ''))}">
+      ${esc(f.label)}${f.heuristic ? '<span class="h">H</span>' : ''}<span class="cnt">${base.filter(f.test).length}</span></button>`;
+  const col = state.chipCol || {};
+  const row = (g, lbl) => { const list = Object.entries(QF).filter(([, f]) => (f.g || 'core') === g), on = list.filter(([k]) => state.quick.has(k)).length;
+    return `<div class="row ${col[g] ? 'col' : ''}"><span class="grp" data-grp="${g}" title="Bấm để ${col[g] ? 'mở' : 'thu gọn'} nhóm">${col[g] ? '▸' : '▾'} ${lbl}${col[g] && on ? ' (' + on + ')' : ''}</span>${list.map(([k, f]) => chip(k, f)).join('')}</div>`; };
+  $('#chips').innerHTML = row('core', 'Chiến lược') + row('wy', 'Wyckoff') + row('ic', 'Ichimoku');
+}
+function wyTip(o){
+  const w = o.wy; if (!w) return '';
+  const f = (x, d = 1) => isNum(x) ? x.toFixed(d) : '—';
+  return [w.label ? 'Nổi bật: ' + w.label : 'Không có tín hiệu Wyckoff nổi bật', w.loai ? 'Phân loại: ' + w.loai : '', w.bar ? 'Nến hôm nay: ' + w.bar.t : '',
+    w.warn.length ? '⚠ ' + w.warn.join(' · ') : '', `RelVol ${f(w.relVol, 2)}× · RelSpr ${f(w.relSpr, 2)} · ClsPos ${f(w.clsPos, 0)} · UpWick ${f(w.upWick, 0)}`,
+    `lowN ${w.lowN ?? '—'} · lowPct ${f(w.lowPct)}% · maCreep ${w.maCreep} · Pivot gần nhất ${w.bsPivot >= 999 ? '>60p' : w.bsPivot + 'p'}`].filter(Boolean).join('\n');
+}
+function icTip(o){
+  const c = o.ic; if (!c) return '';
+  const T = {up:'Ao Sen TRÊN Mây (tăng)', down:'Ao Sen DƯỚI Mây (giảm)', side:'Ao Sen lồng Mây (tích luỹ)'}, S = {hbUp:'2 kiếm hợp bích LÊN', hbDn:'2 kiếm hợp bích XUỐNG', flat:'2 kiếm ngang/đan xen'};
+  return [`B1 ${T[c.trend] || '—'}`, `B2 ${S[c.state] || '—'}${c.chap ? ' · chập ≤5%' : ''}`, `B3 Chikou ${c.csClean ? 'SẠCH' : c.cs === 1 ? 'trên mây nhưng vướng đỉnh giá 26p' : c.csInCloud ? 'KẸT TRONG MÂY' : c.cs === -1 ? 'dưới mây' : 'kẹt giữa Ao Sen & Mây'}`,
+    `B4 giá vs KJ ${fmtPct(c.pKJ)} · DG65 ${fmtPct(c.pDG65)} · DG129 ${fmtPct(c.pDG129)}${c.ob18 ? ' ⚠ quá 18%' : ''}${c.lostDG ? ' ⚠ mất DG65' : ''}`,
+    c.dkb ? '★ Double Kumo Breakout' : '', c.ks ? 'Khách sạn (KJ phẳng)' : '', c.firstDG ? 'Về DG65 lần đầu' : ''].filter(Boolean).join('\n');
+}
+function renderActive(){
+  const items = [];
+  if (state.search.trim()) items.push(['search', `Search: “${state.search.trim()}”`]);
+  if (state.scope.exchange) items.push(['s:exchange', 'Sàn: ' + state.scope.exchange]);
+  if (state.scope.sector) items.push(['s:sector', 'Ngành: ' + state.scope.sector]);
+  if (state.scope.wlOnly) items.push(['s:wl', '★ Watchlist only']);
+  if (state.scope.liq) items.push(['s:liq', `GTGD TB20 ≥ ${state.scope.liq} tỷ`]);
+  const conds = [...[...state.quick].map(k => ['q:' + k, QF[k].tag]), ...state.rules.map((r, i) => ['r:' + i, ruleLabel(r)])];
+  const html = [`<span class="sec-h">Active Filters</span>`];
+  items.forEach(([k, l]) => html.push(`<span class="af">${esc(l)}<button data-rm="${k}" title="Bỏ">×</button></span>`));
+  if (conds.length > 1) html.push(`<button class="mode" id="modeBtn" title="AND = thỏa tất cả điều kiện · OR = thỏa ít nhất một">${state.mode}</button>`);
+  conds.forEach(([k, l]) => html.push(`<span class="af">${esc(l)}<button data-rm="${k}" title="Bỏ">×</button></span>`));
+  if (!items.length && !conds.length) html.push('<span class="dim" style="font-size:11px">Không có — đang hiển thị toàn bộ universe</span>');
+  html.push(`<span class="af-count">${state.view.length} / ${state.data.length}</span>`);
+  if (items.length || conds.length) html.push('<button class="btn sm" id="clearAll">Clear All</button>');
+  $('#active').innerHTML = html.join('');
+  const nAct = items.length + conds.length, fb = $('#btnFilt');
+  if (fb) { fb.textContent = `Lọc${nAct ? ' (' + nAct + ')' : ''} ${document.body.classList.contains('filt-open') ? '▴' : '▾'}`; fb.classList.toggle('has', nAct > 0); }
+}
+function sectorStats(list){
+  const m = new Map();
+  list.forEach(o => {
+    const k = o.sector || 'Khác';
+    if (!m.has(k)) m.set(k, {sector:k, n:0, chg:[], rs:[], sc:[], adv:0, dec:0});
+    const s = m.get(k); s.n++;
+    if (isNum(o.changePct)) s.chg.push(o.changePct);
+    if (isNum(o.rs)) s.rs.push(o.rs);
+    if (isNum(o.score)) s.sc.push(o.score);
+    if (o.state === 'up' || o.state === 'ceil') s.adv++;
+    if (o.state === 'down' || o.state === 'floor') s.dec++;
+  });
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  return [...m.values()].map(s => ({sector:s.sector, n:s.n, avgChg:avg(s.chg), avgRs:avg(s.rs), avgScore:avg(s.sc), adv:s.adv, dec:s.dec}))
+    .sort((a, b) => (b.avgScore ?? -1) - (a.avgScore ?? -1) || (b.avgChg ?? -99) - (a.avgChg ?? -99));
+}
+function renderSectors(){
+  const sc = state.scope, base = state.data.filter(o => (!sc.exchange || o.exchange === sc.exchange) && (!sc.liq || !isNum(o.avgValue20) || o.avgValue20 >= +sc.liq));
+  const stats = sectorStats(base).filter((s, i, a) => base.length < 120 || s.n >= 2);
+  $('#sectors').innerHTML = stats.map(s => {
+    const mx = state.mkt && state.mkt.secMap[s.sector]; if (mx) s.avgChg = mx.pct;   // ưu tiên % chỉ số ngành theo vốn hóa
+    const c = s.avgChg ?? 0, a = Math.min(0.38, Math.abs(c) / 4 * 0.38 + 0.05);
+    const bg = c > 0 ? `rgba(0,176,111,${a})` : c < 0 ? `rgba(242,54,69,${a})` : 'rgba(245,166,35,.1)';
+    return `<div class="sct ${state.scope.sector === s.sector ? 'on' : ''}" data-sec="${esc(s.sector)}" style="background:${bg}"
+      title="${esc(s.sector)}: ${s.n} mã · Avg Score ${fmtX(s.avgScore, 0)} · Avg RS ${fmtX(s.avgRs, 0)} · ADV ${s.adv}/DEC ${s.dec}">
+      <b>${esc(s.sector)}</b><span>${fmtPct(s.avgChg)} · S${fmtX(s.avgScore, 0)}</span></div>`;
+  }).join('');
+}
+const rsCls = r => !isNum(r) ? '' : r >= 80 ? 'g-str' : r >= 50 ? 'g-neu' : 'g-wk';
+function renderTable(){
+  const prev = state.prevPx;
+  $('#tbody').innerHTML = state.view.map(o => {
+    const w = state.watch.has(o.ticker), st = o.state, pv = prev.get(o.ticker);
+    const fl = isNum(pv) && isNum(o.price) && Math.abs(pv - o.price) > 1e-9 ? (o.price > pv ? ' fl-up' : ' fl-dn') : '';
+    return `<tr data-t="${esc(o.ticker)}" class="${o.ticker === state.selected ? 'sel' : ''}">
+      <td class="stk0"><button class="star ${w ? 'on' : ''}" data-star="${esc(o.ticker)}" title="${w ? 'Bỏ khỏi' : 'Thêm vào'} Watchlist">${w ? '★' : '☆'}</button></td>
+      <td class="stk1"><span class="tk ${st}">${esc(o.ticker)}</span><span class="exs">${esc(o.exchange)}</span></td>
+      <td class="c-co" title="${esc(o.company)}">${esc(o.company || '—')}</td>
+      <td class="c-sec" title="${esc(o.sector)}">${esc(o.sector || '—')}</td>
+      <td class="num ${st}${fl}">${fmtP(o.price)}</td>
+      <td class="num ${st}${fl}">${fmtPct(o.changePct)}</td>
+      <td class="num">${fmtVol(o.volume)}</td>
+      <td class="num ${isNum(o.volRatio) && o.volRatio >= 1.5 ? 'hot' : ''}">${isNum(o.volRatio) ? o.volRatio.toFixed(2) + 'x' : '—'}</td>
+      <td class="num"><span class="pill ${rsCls(o.rs)}" title="${esc(o.rsSource || 'Không có dữ liệu')}">${isNum(o.rs) ? o.rs : '—'}</span></td>
+      <td><span class="trd ${o.trendCls}">${o.trendIcon} ${esc(o.trend)}</span></td>
+      <td>${o.wy ? `<span class="wy" title="${esc(wyTip(o))}">${esc(o.wy.label || '·')}${o.wy.warn.length ? `<span class="wn">⚠${esc(o.wy.warn.join(','))}</span>` : ''}</span>` : '<span class="dim">—</span>'}</td>
+      <td class="num">${o.ic && isNum(o.ic.score) ? `<span class="ic ic${o.ic.score}" title="${esc(icTip(o))}">${o.ic.score}/5${o.ic.dkb ? '★' : ''}</span>` : '<span class="dim">—</span>'}</td>
+      <td class="num">${fmtX(o.pe)}</td>
+      <td class="num">${fmtX(o.pb, 2)}</td>
+      <td class="num ${isNum(o.roe) && o.roe >= 15 ? 'up' : ''}">${isNum(o.roe) ? o.roe.toFixed(1) + '%' : '—'}</td>
+      <td class="num"><span class="pill ${o.grade.cls}" title="${esc(o.grade.label)}">${isNum(o.score) ? o.score : '—'}</span></td>
+    </tr>`;
+  }).join('');
+  state.view.forEach(o => prev.set(o.ticker, o.price));
+  $('#empty').hidden = state.view.length > 0;
+}
+function renderSortHeads(){
+  document.querySelectorAll('#thead th').forEach(th => {
+    const old = th.querySelector('.ar'); if (old) old.remove();
+    if (th.dataset.k === state.sort.key) { const s = document.createElement('span'); s.className = 'ar'; s.textContent = state.sort.dir > 0 ? '▲' : '▼'; th.appendChild(s); }
+  });
+}
+
+/* =========================================================================
+   7. RENDER — FUNDAMENTAL / SIGNAL / NEWS PANEL
+   ========================================================================= */
+const kv = (l, v, cls = '') => `<div><div class="l">${l}</div><div class="v ${cls}">${v}</div></div>`;
+const comp = (label, v) => `<div class="comp"><span>${label}</span><div class="cb"><i style="width:${isNum(v) ? clamp(v, 0, 100) : 0}%"></i></div><span class="cv">${isNum(v) ? Math.round(v) : '—'}</span></div>`;
+
+function renderPanel(){
+  const o = state.selected ? bySym(state.selected) : null;
+  const P = $('#panel');
+  const ae = document.activeElement;
+  if (ae && P.contains(ae) && ae.tagName === 'TEXTAREA' && state._panelFor === (o ? o.ticker : null)) return;   // đang gõ ghi chú → không vẽ lại
+  state._panelFor = o ? o.ticker : null;
+  P.classList.toggle('ov', !o);
+  if (!o) { P.innerHTML = overviewHTML(); return; }
+  const w = state.watch.has(o.ticker);
+  const pos = isNum(o.price) && isNum(o.high52) && isNum(o.low52) && o.high52 > o.low52 ? clamp((o.price - o.low52) / (o.high52 - o.low52), 0, 1) : null;
+  const fromHigh = isNum(o.price) && isNum(o.high52) ? (o.price / o.high52 - 1) * 100 : null;
+  const sg = n => isNum(n) ? (n >= 0 ? 'up' : 'down') : '';
+  const sigs = Object.values(QF).filter(f => f.test(o));
+  P.innerHTML = `
+  <div class="pcol">
+    <div class="head-line">
+      <button class="star ${w ? 'on' : ''}" data-star="${esc(o.ticker)}" style="font-size:18px" title="Watchlist">${w ? '★' : '☆'}</button>
+      <span class="ct ${o.state}">${esc(o.ticker)}</span><span class="tag">${esc(o.exchange)}</span><span class="tag">${esc(o.sector || '—')}</span>
+      <span class="px ${o.state}">${fmtP(o.price)}<small>${fmtPct(o.changePct)}</small></span>
+    </div>
+    <div class="muted" style="margin:-4px 0 7px;font-size:12px">${esc(o.company)}</div>
+    <div class="sec-h">Fundamentals</div>
+    <div class="kv">
+      ${kv('Vốn hóa', isNum(o.marketCap) ? fmtInt(o.marketCap) + ' tỷ' : '—')}${kv('EPS (đ)', fmtInt(o.eps))}
+      ${kv('P/E', fmtX(o.pe))}${kv('P/B', fmtX(o.pb, 2))}
+      ${kv('ROE', isNum(o.roe) ? o.roe.toFixed(1) + '%' : '—', isNum(o.roe) && o.roe >= 15 ? 'up' : '')}${kv('Nợ vay/VCSH', isNum(o.debtEquity) ? o.debtEquity.toFixed(2) + 'x' : 'N/A', isNum(o.debtEquity) && o.debtEquity > 1.5 ? 'down' : '')}
+      ${kv('LNST 4Q YoY', fmtPct(o.npatGrowth), sg(o.npatGrowth))}${kv('LNST quý QoQ', fmtPct(o.npatQoq), sg(o.npatQoq))}
+      ${kv('Vol · Avg20', fmtVol(o.volume) + ' · ' + fmtVol(o.avgVol20))}${kv('GTGD · TB20', (isNum(o.value) ? fmtX(o.value, 1) : '—') + ' · ' + (isNum(o.avgValue20) ? fmtX(o.avgValue20, 1) : '—') + ' tỷ')}
+      ${kv('TC · Trần · Sàn', `<span class="ref">${fmtP(o.ref)}</span> <span class="ceil">${fmtP(o.ceil)}</span> <span class="floor">${fmtP(o.floor)}</span>`)}${kv('NN mua ròng', isNum(o.foreignNet) ? (o.foreignNet > 0 ? '+' : '') + o.foreignNet.toFixed(2) + ' tỷ' : '—', sg(o.foreignNet))}
+    </div>
+    <div class="rng">${pos === null ? '' : `<i style="left:${pos * 100}%"></i>`}</div>
+    <div class="rng-lb"><span>L52 ${fmtP(o.low52)}</span><span class="${sg(fromHigh)}">Từ đỉnh ${fmtPct(fromHigh)}</span><span>H52 ${fmtP(o.high52)}</span></div>
+    <div class="rng-lb" style="margin-top:4px"><span>MA10 ${fmtP(o.ma10)}</span><span>MA20 ${fmtP(o.ma20)}</span><span>MA50 ${fmtP(o.ma50)}</span></div>
+  </div>
+  <div class="pcol">
+    <div class="sec-h">Radar Score</div>
+    <div class="score-big"><span class="n">${isNum(o.score) ? o.score : '—'}</span><span class="d">/ 100</span><span class="pill ${o.grade.cls}" style="padding:1px 8px">${o.grade.label}</span></div>
+    ${comp('Technical · 35%', o.parts.technical)}
+    ${comp(`RS · 20% <span class="tag ${o.rsSource === 'Demo RS' ? 'warn' : ''}">${esc(o.rsSource || 'N/A')}</span>`, o.parts.rs)}
+    ${comp('Volume · 15%', o.parts.volume)}
+    ${comp('Fundamental · 20%', o.parts.fundamental)}
+    ${comp('Trend · 10%', o.parts.trend)}
+    <div class="sec-h" style="margin-top:9px">Signals <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">Trend: <span class="${o.trendCls}">${o.trendIcon} ${esc(o.trend)}</span> · BASE_SCORE ${isNum(o.baseScore) ? o.baseScore : '—'} · RS ${isNum(o.rs) ? o.rs : '—'}</span></div>
+    ${sigs.length ? sigs.map(f => `<span class="sig" title="${esc(f.hint)}">✓ ${esc(f.label)}${f.heuristic ? ' · H' : ''}</span>`).join('') : '<span class="dim">Chưa kích hoạt chiến lược nào.</span>'}
+    <div class="dim" style="font-size:10.5px;margin-top:4px">Return 1M/3M/6M/12M: ${[o.ret1m, o.ret3m, o.ret6m, o.ret12m].map(v => isNum(v) ? (v > 0 ? '+' : '') + v.toFixed(1) + '%' : '—').join(' / ')}</div>
+    ${(() => { const sx = state.mkt && state.mkt.secMap[o.sector]; if (!sx) return '';
+      const f = v => isNum(v) ? `<span class="${v >= 0 ? 'up' : 'down'}">${(v > 0 ? '+' : '') + v.toFixed(1)}%</span>` : '—';
+      return `<div style="font-size:11px;margin-top:6px;cursor:pointer" data-secidx="${esc(sx.label)}" title="Bấm để xem biểu đồ chỉ số ngành">📊 Ngành <b>${esc(sx.label)}</b> (${sx.n} mã): hôm nay ${f(sx.pct)} · 1T ${f(sx.r1w)} · 1Th ${f(sx.r1m)} · 3Th ${f(sx.r3m)}${isNum(sx.rs) ? ' · RS ngành ' + sx.rs : ''}</div>`; })()}
+  </div>
+  <div class="pcol">
+    ${wyIchiHTML(o)}
+    <div class="sec-h">News &amp; Research</div>
+    <div class="links">
+      <button class="btn primary" data-open="vs">📈 Biểu đồ kỹ thuật ${esc(o.ticker)} (Vietstock)</button>
+      <button class="btn" data-open="fa">📰 Hồ sơ &amp; tin tức doanh nghiệp (FireAnt)</button>
+      <button class="btn" data-open="max">⤢ Phóng to biểu đồ</button>
+      <button class="btn" data-open="gnews" title="Google không cho nhúng → mở tab mới">🔎 Google News: ${esc(o.ticker)} ↗</button>
+    </div>
+    <div class="sec-h" style="margin-top:10px">Ghi chú phân tích <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">(lưu cục bộ)</span></div>
+    <textarea class="note" id="note" placeholder="Luận điểm, điểm mua, cắt lỗ...">${esc(state.notes[o.ticker] || '')}</textarea>
+  </div>`;
+}
+function wyIchiHTML(o){
+  const w = o.wy, c = o.ic;
+  if (!w && !c) return `<div class="sec-h">Wyckoff · Ichimoku</div><div class="dim" style="font-size:11px;margin-bottom:8px">Cần dữ liệu Live (chuỗi giá ngày) — chọn HOSE · Live.</div>`;
+  const f = (x, d = 2) => isNum(x) ? x.toFixed(d) : '—', pc = x => isNum(x) ? `<span class="${x >= 0 ? 'up' : 'down'}">${(x > 0 ? '+' : '') + x.toFixed(1)}%</span>` : '—';
+  const yes = (b, t) => b ? `<span class="up">✓ ${t}</span>` : `<span class="dim">✗ ${t}</span>`;
+  let h = '';
+  if (w) {
+    const capTxt = {BO_XN:'<span class="up">VỪA vượt — xác nhận</span>', BO_CHUA:'<span class="ref">vừa chạm/vượt — CHƯA xác nhận vol</span>', TREN:'đã trên (vượt từ trước)', SAT:'sát dưới (≤3%)', DUOI:'dưới đường', '':'không có cản chéo'}[w.capState || ''];
+    h += `<div class="sec-h">Wyckoff · VSA ${w.label ? `<span class="tag" style="color:var(--floor)">${esc(w.label)}</span>` : ''}</div>
+    <div class="wi">
+      <b>Nến hôm nay</b><span>${w.bar ? esc(w.bar.t) : 'trung tính'}</span>
+      <b>Phân loại</b><span>${w.loai ? `<span class="up">${esc(w.loai)}</span>` : '—'}${isNum(w.distTop) ? ` · cách đỉnh 52T ${f(w.distTop, 1)}% · nền25 ${f(w.baseRng25, 1)}%` : ''}</span>
+      <b>Cản chéo</b><span>${capTxt}${isNum(w.capLine) ? ` · đường ${f(w.capLine)} (${pc(w.capGap)})` : ''}</span>
+      <b>Spring</b><span>${w.springN < 999 ? `${w.springN} phiên trước · vol cây rũ ${f(w.springRV)}×` : 'không có trong 63p'}</span>
+      <b>Pivot XN</b><span>${w.bsPivot < 999 ? (w.bsPivot === 0 ? '<span class="up">hôm nay</span>' : w.bsPivot + ' phiên trước') : 'không có trong 60p'} · 5p: ${w.pv5}</span>
+      <b>Cạn cung</b><span>${yes(w.lowHeld, 'giá')} · lowN ${w.lowN ?? '—'} · dn20 ${w.dn20}% · ${yes(w.maCreepQuiet, 'bò MA10/20 (' + w.maCreep + 'p)')}</span>
+      <b>Pivotal</b><span>${isNum(w.pivLvl) ? `${f(w.pivLvl)} · chạm ${w.pivCnt} lần · giá ${pc(w.pivDist)}` : '—'}</span>
+      <b>Nến</b><span>RelVol ${f(w.relVol)}× · RelSpr ${f(w.relSpr)} · ClsPos ${f(w.clsPos, 0)} · UpWick ${f(w.upWick, 0)}</span>
+      ${w.warn.length ? `<b class="down">⚠ Cảnh báo</b><span class="down">${esc(w.warn.join(' · '))}</span>` : ''}
+    </div>`;
+  }
+  if (c && isNum(c.score)) {
+    const T = {up:'<span class="up">Ao Sen TRÊN Mây</span>', down:'<span class="down">Ao Sen DƯỚI Mây</span>', side:'<span class="ref">lồng Mây (tích luỹ)</span>'}, S = {hbUp:'<span class="up">hợp bích LÊN</span>', hbDn:'<span class="down">hợp bích XUỐNG</span>', flat:'<span class="ref">ngang/đan xen</span>'};
+    const csT = c.csClean ? '<span class="up">SẠCH</span>' : c.cs === 1 ? '<span class="ref">trên mây, vướng đỉnh giá 26p</span>' : c.csInCloud ? '<span class="down">KẸT trong Mây</span>' : c.cs === -1 ? '<span class="down">dưới mây</span>' : '<span class="ref">kẹt giữa Ao Sen & Mây</span>';
+    h += `<div class="sec-h">Ichimoku 5 bước <span class="ic ic${c.score}">${c.score}/5</span>${c.buy ? ' <span class="tag" style="color:var(--up)">CHUẨN MUA</span>' : ''}${c.dkb ? ' <span class="tag" style="color:var(--ref)">★ DKB</span>' : ''}</div>
+    <div class="wi">
+      <b>B1 Xu hướng</b><span>${T[c.trend]}</span>
+      <b>B2 Trạng thái</b><span>${S[c.state]}${c.chap ? ' · chập ≤5%' : ''}${c.bom ? ' · 2 kiếm BƠM' : ''}</span>
+      <b>B3 Đường trẻ</b><span>${csT}</span>
+      <b>B4 HT/KC</b><span>TK ${f(c.TK)} · KJ ${f(c.KJ)} (${pc(c.pKJ)}) · DG65 ${f(c.KN)} (${pc(c.pDG65)}) · DG129 ${f(c.KN2)} (${pc(c.pDG129)})</span>
+      <b>Mây</b><span>${f(c.cBot)} – ${f(c.cTop)}${c.ks ? ' · <span class="ref">Khách sạn: KJ phẳng</span>' : ''}${c.firstDG ? ' · <span class="up">về DG65 lần đầu</span>' : ''}</span>
+      ${c.ob18 ? '<b class="down">⚠ 18%</b><span class="down">giá cách DG65 phẳng >18% — chờ tích luỹ/điều chỉnh</span>' : ''}
+      ${c.lostDG ? `<b class="down">⚠ Dao găm</b><span class="down">đã đóng dưới DG65 ${c.belowDG} phiên — mất dao găm (SL cấu trúc)</span>` : ''}
+    </div>`;
+  }
+  return h + '<div class="dim" style="font-size:10px;margin:-2px 0 8px">Cờ thông tin — không tự đổi Radar Score/tier (§15.21). Biểu đồ "Nội bộ" có lớp Ichimoku.</div>';
+}
+function overviewHTML(){
+  const ix = idxData(INDICES.find(i => i.key === state.activeIndex) || INDICES[0]);
+  const b = breadthOf(state.data), cls = ix.chg > 0 ? 'up' : ix.chg < 0 ? 'down' : 'ref';
+  const top = state.data.filter(o => isNum(o.score)).sort((a, b) => b.score - a.score).slice(0, 8);
+  const wl = state.data.filter(o => state.watch.has(o.ticker)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 6);
+  const M = state.mkt, v = M && M.vni;
+  const pts = x => isNum(x) ? `<span class="${x > 0.005 ? 'up' : x < -0.005 ? 'down' : 'ref'}">${(x > 0 ? '+' : '') + x.toFixed(2)}</span>` : '—';
+  const pc = x => isNum(x) ? `<span class="${x > 0.005 ? 'up' : x < -0.005 ? 'down' : 'ref'}">${(x > 0 ? '+' : '') + x.toFixed(2)}%</span>` : '—';
+  const pc1 = x => isNum(x) ? `<span class="${x >= 0 ? 'up' : 'down'}">${(x > 0 ? '+' : '') + x.toFixed(1)}</span>` : '<span class="dim">—</span>';
+  let col1 = `
+    <div class="head-line"><span class="ct">${ix.label}</span>${ix.live ? '<span class="tag">LIVE</span>' : '<span class="tag warn">DEMO</span>'}<span class="px ${cls}">${fmtIdx(ix.last)}<small>${fmtPct(ix.chg)}</small></span></div>
+    <div class="muted" style="margin:-4px 0 8px;font-size:12px">${esc(ix.name)}${ix.live && isNum(ix.value) ? ' · GTGD ' + fmtInt(ix.value / 1000) + ' tỷ' : ''}${ix.live ? ` · <span class="up">▲${ix.adv ?? '—'}</span> <span class="down">▼${ix.dec ?? '—'}</span> <span class="ref">■${ix.unc ?? '—'}</span>` : ''}</div>`;
+  if (v) {
+    const kTop = M.contrib.slice(0, 6), kBot = M.contrib.slice(-6).reverse();
+    const row = c => `<tr class="click" data-go="${esc(c.t)}"><td><b>${esc(c.t)}</b></td><td class="num">${pc(c.pct)}</td><td class="num">${pts(c.pts)}</td></tr>`;
+    col1 += `
+    <div class="sec-h" style="cursor:pointer" data-idx2="EXVIN" title="Bấm để xem biểu đồ VNINDEX vs ex-Vin">Phân rã điểm VNINDEX hôm nay 📈</div>
+    <div class="decomp">
+      ${v.vinList.map(c => `<span>· ${esc(c.t)} <span class="dim">${pc(c.pct)}</span></span><span></span><span>${pts(c.pts)}</span>`).join('')}
+      <span><b>Nhóm Vin</b> <span class="dim">(rổ ${isNum(v.vinBasketPct) ? (v.vinBasketPct > 0 ? '+' : '') + v.vinBasketPct.toFixed(2) + '%' : '—'})</span></span><span></span><span><b>${pts(v.vinPts)}</b></span>
+      <span><b>Phần còn lại (ex-Vin)</b> <span class="dim">(rổ ${isNum(v.exBasketPct) ? (v.exBasketPct > 0 ? '+' : '') + v.exBasketPct.toFixed(2) + '%' : '—'})</span></span><span></span><span><b>${pts(v.exPts)}</b></span>
+      <span class="tot">VNINDEX</span><span class="tot">${pc(v.chg)}</span><span class="tot">${pts(v.chgPts)}</span>
+    </div>
+    <div class="dim" style="font-size:10.5px;margin-bottom:6px">Σ đóng góp tính được ${pts(v.sumPts)} so với thực tế ${pts(v.chgPts)} · ex-Vin 1T ${pc1(M.ex.r1w)}% · 1Th ${pc1(M.ex.r1m)}% · 3Th ${pc1(M.ex.r3m)}% (HOSE: ${pc1(M.hose.r1w)} / ${pc1(M.hose.r1m)} / ${pc1(M.hose.r3m)})</div>
+    <div class="kd">
+      <div><div class="sec-h">▲ Kéo chỉ số</div><table class="mini"><tbody>${kTop.map(row).join('')}</tbody></table></div>
+      <div><div class="sec-h">▼ Đè chỉ số</div><table class="mini"><tbody>${kBot.map(row).join('')}</tbody></table></div>
+    </div>`;
+  } else {
+    col1 += `<div class="sec-h">Breadth universe (${b.n} mã)</div>
+    <div class="kv">${kv('Advancing', b.adv, 'up')}${kv('Declining', b.dec, 'down')}${kv('Unchanged', b.unc, 'ref')}${kv('Ceiling / Floor', `<span class="ceil">${b.ceil}</span> / <span class="floor">${b.floor}</span>`)}</div>
+    <div class="dim" style="font-size:11px;margin-top:8px">${live.on ? 'Đang tải dữ liệu thị trường…' : 'VNI ex-Vin và chỉ số ngành cần dữ liệu Live (chọn HOSE · Live ở ô phạm vi quét).'}</div>`;
+  }
+  let col2;
+  if (M && M.sectors.length) {
+    const key = state.secSort, dir = key === 'label' ? 1 : -1;
+    const secs = M.sectors.filter(s => s.n >= 2).sort((a, b) => key === 'label' ? a.label.localeCompare(b.label, 'vi') : ((isNum(b[key]) ? b[key] : -1e9) - (isNum(a[key]) ? a[key] : -1e9)));
+    const th = (k, l, num = true) => `<th class="srt ${num ? 'num' : ''} ${key === k ? 'on' : ''}" data-ssort="${k}">${l}${key === k ? ' ▼' : ''}</th>`;
+    col2 = `<div class="sec-h">Chỉ số ngành · vốn hóa · ${esc(M.scope)} <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">(bấm ngành → biểu đồ + lọc)</span></div>
+    <table class="mini"><thead><tr>${th('label', 'Ngành', false)}${th('pct', 'Hôm nay')}${th('r1w', '1T')}${th('r1m', '1Th')}${th('r3m', '3Th')}${th('rs', 'RS')}<th class="num">A/D</th></tr></thead><tbody>
+    ${secs.map(s => `<tr class="click" data-secidx="${esc(s.label)}" title="${esc(s.label)}: ${s.n} mã · GTGD ${fmtX(s.val, 0)} tỷ · vốn hóa ${fmtInt(s.mcap)} tỷ"><td class="lbl">${esc(s.label)} <span class="dim">${s.n}</span></td><td class="num">${pc(s.pct)}</td><td class="num">${pc1(s.r1w)}</td><td class="num">${pc1(s.r1m)}</td><td class="num">${pc1(s.r3m)}</td><td class="num">${isNum(s.rs) ? `<span class="pill ${rsCls(s.rs)}">${s.rs}</span>` : '—'}</td><td class="num"><span class="up">${s.adv}</span>/<span class="down">${s.dec}</span></td></tr>`).join('')}
+    </tbody></table>`;
+  } else {
+    const secs = sectorStats(state.data).slice(0, 12);
+    col2 = `<div class="sec-h">Sector Strength (trung bình đơn giản)</div>
+    <table class="mini"><thead><tr><th>Ngành</th><th class="num">#</th><th class="num">Avg %</th><th class="num">RS</th><th class="num">Score</th><th class="num">A/D</th></tr></thead><tbody>
+    ${secs.map(s => `<tr class="click" data-sec="${esc(s.sector)}"><td>${esc(s.sector)}</td><td class="num">${s.n}</td><td class="num ${(s.avgChg ?? 0) >= 0 ? 'up' : 'down'}">${fmtPct(s.avgChg)}</td><td class="num">${fmtX(s.avgRs, 0)}</td><td class="num">${fmtX(s.avgScore, 0)}</td><td class="num">${s.adv}/${s.dec}</td></tr>`).join('')}
+    </tbody></table>`;
+  }
+  return `
+  <div class="pcol">${col1}</div>
+  <div class="pcol">${col2}</div>
+  <div class="pcol">
+    <div class="sec-h">Top Radar Score</div>
+    <table class="mini"><tbody>
+    ${top.map(o => `<tr class="click" data-go="${esc(o.ticker)}"><td><b class="${o.state}">${esc(o.ticker)}</b></td><td class="num ${o.state}">${fmtPct(o.changePct)}</td><td class="num">RS ${o.rs ?? '—'}</td><td class="num"><span class="pill ${o.grade.cls}">${o.score}</span></td></tr>`).join('')}
+    </tbody></table>
+    <div class="sec-h" style="margin-top:9px">★ Watchlist</div>
+    ${wl.length ? `<table class="mini"><tbody>${wl.map(o => `<tr class="click" data-go="${esc(o.ticker)}"><td><b class="${o.state}">${esc(o.ticker)}</b></td><td class="num ${o.state}">${fmtP(o.price)}</td><td class="num ${o.state}">${fmtPct(o.changePct)}</td><td class="num"><span class="pill ${o.grade.cls}">${o.score ?? '—'}</span></td></tr>`).join('')}</tbody></table>` : '<span class="dim" style="font-size:11px">Chưa có mã nào — bấm ☆ trong bảng để thêm.</span>'}
+  </div>`;
+}
+
+/* =========================================================================
+   8. CHART — NHÚNG TRỰC TIẾP (VIETSTOCK / FIREANT) + MÔ PHỎNG OFFLINE
+   Đã kiểm chứng 08/10/2026:
+   - stockchart.vietstock.vn/?stockcode=X  → nhúng được, đổi mã đúng (cả VNINDEX, VN30, HNXINDEX, UPCOMINDEX)
+   - fireant.vn/ma-chung-khoan/X           → nhúng được, đổi mã đúng (chart + cơ bản + tin tức/thảo luận)
+   - fireant.vn/charts?symbol=X            → nhúng được nhưng BỎ QUA tham số symbol (giữ mã cũ) → không dùng
+   - TradingView widget                    → không cấp dữ liệu sàn Việt Nam cho widget ("chỉ có trên TradingView")
+   ========================================================================= */
+const CHART_SRC = {
+  vs:  {url: t => 'https://stockchart.vietstock.vn/?stockcode=' + encodeURIComponent(t),
+        hint: 'Vietstock Chart · TradingView engine. Nút ☀ góc trên chart để chuyển nền tối (Vietstock tự ghi nhớ).'},
+  fa:  {url: t => 'https://fireant.vn/ma-chung-khoan/' + encodeURIComponent(t),
+        hint: 'FireAnt Hồ sơ · chart + chỉ số cơ bản thực + tin tức/thảo luận. Cuộn bên trong khung để xem thêm.'},
+  sim: {url: null, hint: ''}
+};
+let chartLoadTimer;
+function chartUrl(mode, t){ const s = CHART_SRC[mode]; return s && s.url ? s.url(t) : null; }
+function synthLabel(sym){
+  if (sym === '#EXVIN') return ['VNI ex-Vin', 'VNINDEX vs VNINDEX loại trừ ' + state.vin.join(', ') + ' (tổng hợp, vốn hóa)'];
+  if (sym.startsWith('#S:')) return ['Ngành ' + sym.slice(3), 'Chỉ số ngành tổng hợp theo vốn hóa' + (state.mkt ? ' · ' + state.mkt.scope : '') + ' vs VNINDEX (gốc 100)'];
+  return [sym, ''];
+}
+function changeSymbol(ticker){
+  const raw = String(ticker || 'VNINDEX').trim();
+  if (raw.startsWith('#')) {
+    state.chartSymbol = raw;
+    if (state.chartMode !== 'sim') { state._restoreMode = state.chartMode; setChartMode('sim'); return; }
+    const [a, b] = synthLabel(raw); $('#chartTicker').textContent = a; $('#chartName').textContent = b;
+    drawSim(); return;
+  }
+  if (state._restoreMode && state.chartMode === 'sim') { const m = state._restoreMode; state._restoreMode = null; state.chartSymbol = raw.toUpperCase(); setChartMode(m); return; }
+  const t = raw.toUpperCase();
+  state.chartSymbol = t;
+  const o = bySym(t), ix = INDICES.find(i => i.fa === t);
+  $('#chartTicker').textContent = t;
+  $('#chartName').textContent = o ? o.company : ix ? ix.name : '';
+  const url = chartUrl(state.chartMode, t);
+  if (!url) { drawSim(); return; }
+  const fr = $('#chart-frame');
+  if (fr.getAttribute('src') !== url) {
+    $('#chartLoading').classList.remove('off');
+    clearTimeout(chartLoadTimer);
+    chartLoadTimer = setTimeout(() => $('#chartLoading').classList.add('off'), 8000);
+    fr.src = url;
+  }
+}
+function setChartMode(mode){
+  if (!CHART_SRC[mode]) mode = 'vs';
+  state.chartMode = mode; saveUI();
+  document.querySelectorAll('#srcTabs [data-src]').forEach(b => b.classList.toggle('on', b.dataset.src === mode));
+  const isFrame = mode !== 'sim';
+  $('#chart-frame').hidden = !isFrame;
+  $('#chartLoading').hidden = !isFrame;
+  $('#simCanvas').hidden = isFrame;
+  $('#btnNewTab').hidden = !isFrame;
+  $('#chartHint').textContent = CHART_SRC[mode].hint;
+  $('#chartHint').hidden = !CHART_SRC[mode].hint;
+  changeSymbol(state.chartSymbol);
+}
+function reloadChart(){
+  const url = state.chartSymbol.startsWith('#') ? null : chartUrl(state.chartMode, state.chartSymbol);
+  if (!url) { drawSim(); return; }
+  const fr = $('#chart-frame');
+  fr.src = 'about:blank';
+  setTimeout(() => { $('#chartLoading').classList.remove('off'); fr.src = url; }, 60);
+}
+function toggleMax(force){
+  const on = typeof force === 'boolean' ? force : !document.body.classList.contains('chart-max');
+  document.body.classList.toggle('chart-max', on);
+  document.querySelector('.work').classList.toggle('max', on);
+  $('#btnMax').classList.toggle('on', on);
+  $('#btnMax').textContent = on ? '⤡ Thu nhỏ' : '⤢ Phóng to';
+  if (state.chartMode === 'sim') setTimeout(drawSim, 30);
+}
+function toggleFullscreen(){
+  const el = $('#chartBody');
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (el.requestFullscreen) el.requestFullscreen().catch(() => toggleMax(true));
+  else toggleMax(true);
+}
+function genBars(o, N = 140){
+  const rnd = mulberry32(hashStr(o.ticker)), bars = [];
+  let prev = 1;
+  for (let i = 0; i < N; i++) {
+    const open = prev * (1 + (rnd() - 0.5) * 0.012), close = open * (1 + (rnd() - 0.47) * 0.04);
+    bars.push({open, close, high:Math.max(open, close) * (1 + rnd() * 0.015), low:Math.min(open, close) * (1 - rnd() * 0.015), vol:(o.avgVol20 || 1e6) * (0.45 + rnd() * 1.1)});
+    prev = close;
+  }
+  const ref = isNum(o.changePct) ? o.price / (1 + o.changePct / 100) : o.price, k = ref / bars[N - 2].close;
+  for (let i = 0; i < N - 1; i++) { const b = bars[i]; b.open *= k; b.close *= k; b.high *= k; b.low *= k; }
+  const L = bars[N - 1]; L.open = ref; L.close = o.price; L.high = Math.max(ref, o.price) * 1.004; L.low = Math.min(ref, o.price) * 0.996;
+  if (isNum(o.volume)) L.vol = o.volume;
+  return bars;
+}
+function drawSim(){
+  const cv = $('#simCanvas'), box = $('#chartBody'), W = box.clientWidth, H = box.clientHeight, dpr = window.devicePixelRatio || 1;
+  if (!W || !H) return;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#0d1119'; g.fillRect(0, 0, W, H);
+  const sym = state.chartSymbol, o = bySym(sym);
+  const msg = t => { g.textAlign = 'center'; g.font = '12px Inter, Arial, sans-serif'; g.fillStyle = '#9ca3af'; g.fillText(t, W / 2, H / 2); };
+  if (sym.startsWith('#')) { drawSynthetic(g, W, H, sym, msg); return; }
+  if (live.on) {
+    let X = live.bars[sym] ? techSeries(sym) : null;
+    if (!X) {
+      const B = live.barCache.get(sym);
+      if (B === undefined) {
+        msg('Đang tải nến ngày ' + sym + '…');
+        live.barCache.set(sym, null);
+        fetchHist(sym, 400).then(j => live.barCache.set(sym, {d:j.t.map(x => new Date(x * 1000).toISOString().slice(0, 10)), o:j.o, h:j.h, l:j.l, c:j.c, v:j.v}))
+          .catch(() => live.barCache.set(sym, {c:[]}))
+          .then(() => { if (state.chartMode === 'sim' && state.chartSymbol === sym) drawSim(); });
+        return;
+      }
+      if (B === null) { msg('Đang tải nến ngày ' + sym + '…'); return; }
+      if (!B.c.length) { msg('Không tải được lịch sử giá ' + sym + ' từ VPS/VNDirect.'); return; }
+      X = buildStatic(B, B.c.length);
+    }
+    const last = X.c[X.c.length - 1];
+    drawCandles(g, W, H, X, sym, last, o ? o.state : 'ref', 'Nến ngày thật · VPS' + (X.live ? ' · nến cuối = phiên đang giao dịch' : ''), '#00b8d9');
+    return;
+  }
+  if (!o || !isNum(o.price)) { msg('Chế độ mô phỏng chỉ áp dụng cho cổ phiếu trong universe — chọn một mã ở Radar.'); return; }
+  const gb = genBars(o), GB = {d:gb.map(() => ''), o:gb.map(b => b.open), h:gb.map(b => b.high), l:gb.map(b => b.low), c:gb.map(b => b.close), v:gb.map(b => b.vol)};
+  drawCandles(g, W, H, buildStatic(GB, GB.c.length), o.ticker, o.price, o.state, 'DỮ LIỆU MÔ PHỎNG – chỉ minh họa, không phải lịch sử giá thực', '#f23645');
+}
+function drawSynthetic(g, W, H, sym, msg){
+  const S = live.series, M = state.mkt;
+  if (!live.on) return msg('Chỉ báo này cần dữ liệu Live — chọn HOSE · Live ở ô phạm vi quét.');
+  if (!S) return msg('Đang dựng chuỗi chỉ số từ lịch sử giá…');
+  const key = sym === '#EXVIN' ? 'EXVIN' : 'S:' + sym.slice(3), arr = S.g[key];
+  if (!arr) return msg('Không có dữ liệu chuỗi cho ' + sym.replace('#S:', 'ngành '));
+  const n = S.dates.length, win = Math.min(n, 160), i0 = n - win;
+  let dates = S.dates.slice(i0), vni = S.vni.slice(i0), A = arr.slice(i0);
+  const vLive = state.idxLive && state.idxLive.VNINDEX;
+  if (M && M.appendToday && vLive && isNum(vLive.last)) { dates = dates.concat([vnDate()]); vni = vni.concat([vLive.last]); A = A.concat([isNum(arr[n - 1]) ? arr[n - 1] * (M.factors[key] ?? 1) : null]); }
+  const k0 = A.findIndex((v, i) => isNum(v) && isNum(vni[i]));
+  if (k0 < 0) return msg('Chưa đủ dữ liệu để vẽ.');
+  let lines, title;
+  if (sym === '#EXVIN') {
+    const sc = vni[k0] / A[k0];
+    lines = [{name:'VNINDEX', col:'#9ca3af', vals:vni}, {name:'VNI ex-Vin', col:'#00b8d9', vals:A.map(v => isNum(v) ? v * sc : null)}];
+    title = 'EX-VIN';
+  } else {
+    lines = [{name:'VNINDEX', col:'#9ca3af', vals:vni.map(v => isNum(v) ? v / vni[k0] * 100 : null)}, {name:sym.slice(3), col:'#f5a623', vals:A.map(v => isNum(v) ? v / A[k0] * 100 : null)}];
+    title = sym.slice(3).toUpperCase();
+  }
+  drawLines(g, W, H, dates, lines, title, k0);
+}
+function drawLines(g, W, H, dates, lines, title, k0){
+  const N = dates.length, padL = 10, padR = 66, padT = 40, padB = 26, ph = H - padT - padB;
+  const all = lines.flatMap(l => l.vals.slice(k0).filter(isNum)); if (!all.length) return;
+  let hi = Math.max(...all), lo = Math.min(...all); const pad = (hi - lo) * 0.06 || 1; hi += pad; lo -= pad;
+  const x = i => padL + (i - k0) / Math.max(1, N - 1 - k0) * (W - padL - padR), y = v => padT + (hi - v) / (hi - lo) * ph;
+  g.textAlign = 'center'; g.font = 'bold 56px Inter, Arial, sans-serif'; g.fillStyle = 'rgba(255,255,255,.035)'; g.fillText(title, W / 2, padT + ph / 2 + 18);
+  g.strokeStyle = '#1f2533'; g.lineWidth = 1; g.font = '10.5px JetBrains Mono, monospace'; g.fillStyle = '#6b7280'; g.textAlign = 'left';
+  for (let i = 0; i <= 5; i++) { const v = lo + (hi - lo) * i / 5, yy = Math.round(y(v)) + 0.5; g.beginPath(); g.moveTo(padL, yy); g.lineTo(W - padR, yy); g.stroke(); g.fillText(v.toFixed(v > 500 ? 0 : 1), W - padR + 6, yy + 3); }
+  let lastM = '';
+  g.textAlign = 'center';
+  for (let i = k0; i < N; i++) { const m = dates[i].slice(0, 7); if (m !== lastM) { if (lastM) { const xx = Math.round(x(i)) + 0.5; g.strokeStyle = '#1a202b'; g.beginPath(); g.moveTo(xx, padT); g.lineTo(xx, padT + ph); g.stroke(); g.fillStyle = '#6b7280'; g.fillText('Th' + (+dates[i].slice(5, 7)) + '/' + dates[i].slice(2, 4), xx, H - 8); } lastM = m; } }
+  lines.forEach(l => { g.strokeStyle = l.col; g.lineWidth = 1.8; g.beginPath(); let st = false; for (let i = k0; i < N; i++) { const v = l.vals[i]; if (!isNum(v)) continue; st ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)); st = true; } g.stroke(); });
+  g.textAlign = 'left'; g.font = '11.5px Inter, Arial, sans-serif';
+  let lx = padL + 4;
+  lines.forEach(l => {
+    const vs = l.vals.slice(k0).filter(isNum), first = vs[0], last = vs[vs.length - 1], ch = (last / first - 1) * 100;
+    const txt = `${l.name} ${last.toFixed(last > 500 ? 2 : 1)} (${ch >= 0 ? '+' : ''}${ch.toFixed(1)}% trong ${N - k0} phiên)`;
+    g.fillStyle = l.col; g.fillRect(lx, 14, 12, 3); g.fillText(txt, lx + 16, 19); lx += g.measureText(txt).width + 34;
+    const yl = clamp(y(last), padT, padT + ph); g.fillRect(W - padR + 2, yl - 8, padR - 4, 16); g.fillStyle = '#000'; g.font = 'bold 10.5px JetBrains Mono, monospace'; g.fillText(last.toFixed(last > 500 ? 1 : 1), W - padR + 5, yl + 4); g.font = '11.5px Inter, Arial, sans-serif';
+  });
+  if (lines.length === 2) { const a = lines[0].vals[N - 1], b = lines[1].vals[N - 1]; if (isNum(a) && isNum(b)) { g.fillStyle = '#9ca3af'; g.fillText(`Chênh lệch hiện tại: ${(b - a >= 0 ? '+' : '') + (b - a).toFixed(1)} ${a > 500 ? 'điểm' : 'điểm gốc-100'}`, padL + 4, 34); } }
+}
+function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol){
+  const n = X.c.length, win = Math.min(150, n), s0 = n - win, ichi = !!(state.ichiOn && X.tk);
+  const fut = ichi ? 26 : 0, slots = win + fut;
+  const padL = 8, padR = 62, padT = 30, volH = H * 0.18, priceH = H - volH - padT - 22;
+  const vals = [];
+  for (let k = s0; k < n; k++) vals.push(X.h[k], X.l[k]);
+  const cl = p => { const q = p - 26; return q >= 0 && q < n && X.sa[q] !== null && X.sb[q] !== null ? [X.sa[q], X.sb[q]] : null; };
+  if (ichi) {
+    for (let k = s0; k < n; k++) ['tk', 'kj', 'kn', 'kn2'].forEach(a => { if (X[a][k] !== null) vals.push(X[a][k]); });
+    for (let p = s0; p < n + 26; p++) { const z = cl(p); if (z) vals.push(z[0], z[1]); }
+  }
+  let hi = Math.max(...vals), lo = Math.min(...vals); const pad = (hi - lo) * 0.03 || 1; hi += pad; lo -= pad; const span = hi - lo;
+  const y = v => padT + (hi - v) / span * priceH, cw = (W - padL - padR) / slots, x = p => padL + (p - s0) * cw + cw / 2;
+  const maxV = Math.max(...X.v.slice(s0)) || 1;
+  g.textAlign = 'center'; g.font = 'bold 64px Inter, Arial, sans-serif'; g.fillStyle = 'rgba(255,255,255,.035)'; g.fillText(title, W / 2, padT + priceH / 2 + 22);
+  g.strokeStyle = '#1f2533'; g.lineWidth = 1; g.font = '10.5px JetBrains Mono, monospace'; g.fillStyle = '#6b7280'; g.textAlign = 'left';
+  for (let k = 0; k <= 5; k++) { const v = lo + span * k / 5, yy = Math.round(y(v)) + 0.5; g.beginPath(); g.moveTo(padL, yy); g.lineTo(W - padR, yy); g.stroke(); g.fillText(v.toFixed(2), W - padR + 6, yy + 3); }
+  if (ichi) {   // Mây (dịch 26 phiên về tương lai)
+    for (let p = s0; p < n + 26 - 1; p++) {
+      const a = cl(p), b = cl(p + 1); if (!a || !b) continue;
+      g.fillStyle = a[0] >= a[1] ? 'rgba(0,176,111,.16)' : 'rgba(242,54,69,.16)';
+      g.beginPath(); g.moveTo(x(p), y(a[0])); g.lineTo(x(p + 1), y(b[0])); g.lineTo(x(p + 1), y(b[1])); g.lineTo(x(p), y(a[1])); g.closePath(); g.fill();
+    }
+  }
+  for (let k = s0; k < n; k++) {
+    const col = X.c[k] >= X.o[k] ? '#00b06f' : '#f23645'; g.strokeStyle = col; g.fillStyle = col;
+    g.beginPath(); g.moveTo(x(k), y(X.h[k])); g.lineTo(x(k), y(X.l[k])); g.stroke();
+    const bw = Math.max(1, cw * 0.62); g.fillRect(x(k) - bw / 2, y(Math.max(X.o[k], X.c[k])), bw, Math.max(1, Math.abs(y(X.o[k]) - y(X.c[k]))));
+    const vh = X.v[k] / maxV * (volH - 6); g.globalAlpha = 0.45; g.fillRect(x(k) - bw / 2, H - 18 - vh, bw, vh); g.globalAlpha = 1;
+  }
+  const line = (arr, col, w, from, to, off = 0, dash) => { g.strokeStyle = col; g.lineWidth = w; if (dash) g.setLineDash(dash); g.beginPath(); let st = false; for (let k = from; k < to; k++) { const v = arr[k + off]; if (v === null || v === undefined || !isFinite(v)) continue; st ? g.lineTo(x(k), y(v)) : g.moveTo(x(k), y(v)); st = true; } g.stroke(); g.setLineDash([]); };
+  const legend = [];
+  if (ichi) {
+    line(X.kn2, '#fb923c', 2, s0, n); line(X.kn, '#facc15', 2, s0, n); line(X.kj, '#3b82f6', 1.4, s0, n); line(X.tk, '#ef4444', 1.2, s0, n);
+    line(X.c, '#a3e635', 1.1, s0, n - 26, 26, [3, 3]);                                  // Chikou: giá lùi 26 phiên
+    legend.push(['TK9', '#ef4444'], ['KJ17', '#3b82f6'], ['DG65', '#facc15'], ['DG129', '#fb923c'], ['Chikou', '#a3e635'], ['Mây 26', '#00b06f']);
+  } else {
+    line(X.ma20, '#f5a623', 1.4, s0, n); line(X.ma50, '#2962ff', 1.4, s0, n);
+    legend.push(['MA20', '#f5a623'], ['MA50', '#2962ff']);
+  }
+  const col = getComputedStyle(document.documentElement).getPropertyValue('--' + stCls).trim() || '#fff', yl = clamp(y(lastPx), padT, padT + priceH);
+  g.setLineDash([4, 3]); g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.moveTo(padL, yl); g.lineTo(W - padR, yl); g.stroke(); g.setLineDash([]);
+  g.fillStyle = col; g.fillRect(W - padR + 2, yl - 9, padR - 4, 18); g.fillStyle = '#000'; g.font = 'bold 11px JetBrains Mono, monospace'; g.fillText(fmtP(lastPx), W - padR + 6, yl + 4);
+  g.font = '11px Inter, Arial, sans-serif'; let lx = padL + 4;
+  legend.forEach(([t, c2]) => { g.fillStyle = c2; g.fillText(t, lx, 14); lx += g.measureText(t).width + 12; });
+  g.fillStyle = labelCol; g.fillText(label, lx + 6, 14);
+}
+
+/* =========================================================================
+   9. TƯƠNG TÁC
+   ========================================================================= */
+function selectTicker(t, scroll = false){
+  state.selected = t;
+  changeSymbol(t);
+  document.querySelectorAll('#tbody tr.sel').forEach(r => r.classList.remove('sel'));
+  const tr = document.querySelector(`#tbody tr[data-t="${CSS.escape(t)}"]`);
+  if (tr) { tr.classList.add('sel'); if (scroll) tr.scrollIntoView({block:'nearest'}); }
+  renderIndices(); renderPanel(); mvLabels();
+  if (isMobile() && !scroll && state.mv === 'radar') setMV('chart');
+}
+function selectIndex(key){
+  if (key === 'EXVIN') {
+    state.selected = null; state.activeIndex = 'EXVIN';
+    document.querySelectorAll('#tbody tr.sel').forEach(r => r.classList.remove('sel'));
+    changeSymbol('#EXVIN'); renderIndices(); renderPanel(); mvLabels(); if (isMobile()) setMV('chart'); return;
+  }
+  const ix = INDICES.find(i => i.key === key) || INDICES[0];
+  state.selected = null; state.activeIndex = ix.key;
+  document.querySelectorAll('#tbody tr.sel').forEach(r => r.classList.remove('sel'));
+  changeSymbol(ix.fa); renderIndices(); renderPanel(); mvLabels(); if (isMobile()) setMV('chart');
+}
+function showSector(label){
+  state.scope.sector = label; $('#s-sec').value = label; saveUI(); applyFilters();
+  state.selected = null; document.querySelectorAll('#tbody tr.sel').forEach(r => r.classList.remove('sel'));
+  changeSymbol('#S:' + label); renderPanel(); mvLabels(); if (isMobile()) setMV('chart');
+}
+function toggleWatch(t){
+  state.watch.has(t) ? state.watch.delete(t) : state.watch.add(t);
+  if (!ls.set(STORE.wl, [...state.watch])) toast('Trình duyệt chặn LocalStorage – Watchlist chỉ giữ trong phiên này.', 'err');
+  applyFilters(); renderPanel();
+}
+function setScopeSector(sec){
+  state.scope.sector = state.scope.sector === sec ? '' : sec;
+  $('#s-sec').value = state.scope.sector; saveUI(); applyFilters();
+}
+let sugIdx = 0, sugItems = [];
+function renderSuggest(){
+  const ul = $('#suggest'), q = normText(state.search.trim());
+  if (!q) { ul.hidden = true; sugItems = []; return; }
+  const qu = q.toUpperCase();
+  sugItems = state.data.filter(o => o._n.includes(q)).sort((a, b) => (b.ticker.startsWith(qu) - a.ticker.startsWith(qu)) || a.ticker.localeCompare(b.ticker)).slice(0, 8);
+  if (!sugItems.length && /^[A-Z0-9]{3,10}$/.test(qu)) sugItems = [{ticker:qu, company:'Mở biểu đồ FireAnt (ngoài universe)', sector:'', state:'ref'}];
+  sugIdx = 0;
+  ul.innerHTML = sugItems.map((o, i) => `<li data-pick="${esc(o.ticker)}" class="${i ? '' : 'act'}"><span class="st ${o.state}">${esc(o.ticker)}</span><span class="sn">${esc(o.company)}${o.sector ? ' · ' + esc(o.sector) : ''}</span><span class="mono ${o.state}">${isNum(o.changePct) ? fmtPct(o.changePct) : ''}</span></li>`).join('');
+  ul.hidden = !sugItems.length;
+}
+function pickSuggest(t){
+  $('#search').value = ''; state.search = ''; $('#suggest').hidden = true;
+  applyFilters();
+  if (bySym(t)) selectTicker(t, true);
+  else { state.selected = null; renderPanel(); changeSymbol(t); }
+}
+function clearSearch(){ $('#search').value = ''; state.search = ''; $('#suggest').hidden = true; applyFilters(); }
+function clearAll(){
+  state.quick.clear(); state.rules = []; state.search = ''; $('#search').value = '';
+  state.scope = {exchange:'', sector:'', wlOnly:false, liq:''};
+  $('#s-ex').value = ''; $('#s-sec').value = ''; $('#s-wl').checked = false; $('#s-liq').value = '';
+  saveUI(); applyFilters(); toast('Đã xóa toàn bộ bộ lọc.');
+}
+function removeFilter(tok){
+  const [t, k] = tok.split(':');
+  if (tok === 'search') return clearSearch();
+  if (t === 'q') state.quick.delete(k);
+  if (t === 'r') state.rules.splice(+k, 1);
+  if (t === 's') {
+    if (k === 'exchange') { state.scope.exchange = ''; $('#s-ex').value = ''; }
+    if (k === 'sector') { state.scope.sector = ''; $('#s-sec').value = ''; }
+    if (k === 'wl') { state.scope.wlOnly = false; $('#s-wl').checked = false; }
+    if (k === 'liq') { state.scope.liq = ''; $('#s-liq').value = ''; }
+  }
+  saveUI(); applyFilters();
+}
+
+/* =========================================================================
+   10. IMPORT CSV / EXCEL
+   ========================================================================= */
+const ALIAS = {
+  ticker:['ticker','ma','mack','symbol','code','macp','machungkhoan','stock'],
+  company:['company','name','ten','tencongty','tendoanhnghiep','congty'],
+  exchange:['exchange','san','sangd','market','sangiaodich'],
+  sector:['sector','nganh','industry','nhomnganh'],
+  price:['price','gia','close','giadongcua','last','giahientai','giakhop'],
+  ref:['ref','reference','giatc','giathamchieu','tc','prevclose'],
+  changePct:['changepct','change','pct','thaydoi','phantram','percent','chg','phantramthaydoi','changepercent'],
+  volume:['volume','vol','kl','khoiluong','klkhop','khoiluongkhop'],
+  avgVol20:['avgvol20','avgvolume20','kltb20','khoiluongtb20','avgvol','kltb'],
+  rs:['rs','rsrating','sucmanhgia'],
+  marketCap:['marketcap','mcap','vonhoa','vonhoaty'],
+  pe:['pe'], pb:['pb'], eps:['eps'], roe:['roe'],
+  debtEquity:['debtequity','de','novayvcsh','novay','debttoequity'],
+  npatGrowth:['npatgrowth','lnstgrowth','tangtruonglnst','growth','lnstyoy','tangtruonglnstquy'],
+  high52:['high52','dinh52','dinh52tuan','52wh','high52w'],
+  low52:['low52','day52','day52tuan','52wl','low52w'],
+  ma10:['ma10','sma10'], ma20:['ma20','sma20'], ma50:['ma50','sma50'],
+  range20:['range20','baserange','biendonen','biendo20'],
+  maxDownVol10:['maxdownvol10','downvol','dv'],
+  volatility20:['volatility20','volatility','dolech20','sd20','biendong20'],
+  volContraction:['volcontraction','volcontract','vc','avgvol10ratio'],
+  ret1m:['ret1m','return1m','r1m','1m','hieusuat1t'],
+  ret3m:['ret3m','return3m','r3m','3m','hieusuat3t'],
+  ret6m:['ret6m','return6m','r6m','6m','hieusuat6t'],
+  ret12m:['ret12m','return12m','r12m','12m','ret1y','return1y','hieusuat12t']
+};
+const ALIAS_MAP = {}; Object.entries(ALIAS).forEach(([k, arr]) => arr.forEach(a => ALIAS_MAP[a] = k));
+
+function parseNum(s){
+  if (typeof s === 'number') return isFinite(s) ? s : null;
+  if (s == null) return null;
+  s = String(s).trim().replace(/[%\s\u00a0]/g, '');
+  if (!s || s === '-' || /^(n\/?a|null|—)$/i.test(s)) return null;
+  const hd = s.includes('.'), hc = s.includes(',');
+  if (hd && hc) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if (hc) s = /^-?\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
+  else if (hd && /^-?\d{1,3}(\.\d{3}){2,}$/.test(s)) s = s.replace(/\./g, '');
+  const n = Number(s);
+  return isFinite(n) ? n : null;
+}
+function parseCSV(text){
+  text = text.replace(/^\ufeff/, '');
+  const first = text.split(/\r?\n/, 1)[0] || '', cnt = ch => first.split(ch).length - 1;
+  const d = cnt('\t') > cnt(',') && cnt('\t') > cnt(';') ? '\t' : cnt(';') > cnt(',') ? ';' : ',';
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === d) { row.push(f); f = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(f); f = ''; if (row.some(c => String(c).trim() !== '')) rows.push(row); row = []; }
+    else f += ch;
+  }
+  row.push(f); if (row.some(c => String(c).trim() !== '')) rows.push(row);
+  return rows;
+}
+function rowsToUniverse(rows){
+  if (rows.length < 2) throw new Error('File không có dòng dữ liệu.');
+  const keys = rows[0].map(h => ALIAS_MAP[normKey(h)] || null);
+  if (!keys.includes('ticker')) throw new Error('Không tìm thấy cột Ticker/Mã. Hãy dùng “Tải file CSV mẫu” để xem cấu trúc cột.');
+  const seen = new Set(), out = [];
+  for (let r = 1; r < rows.length; r++) {
+    const raw = {};
+    keys.forEach((k, i) => { if (!k || raw[k] != null) return; const v = rows[r][i]; raw[k] = STR_KEYS.has(k) ? (v == null ? '' : String(v).trim()) : parseNum(v); });
+    if (!raw.ticker) continue;
+    if (raw.changePct == null && isNum(raw.ref) && isNum(raw.price) && raw.ref > 0) raw.changePct = (raw.price / raw.ref - 1) * 100;
+    const o = normalizeRow(raw);
+    if (!o.ticker || seen.has(o.ticker)) continue;
+    seen.add(o.ticker); out.push(o);
+  }
+  if (!out.length) throw new Error('Không đọc được mã cổ phiếu hợp lệ nào.');
+  return buildUniverse(out, false);
+}
+function loadSheetJS(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = XLSX_CDN;
+    s.onload = () => window.XLSX ? res(window.XLSX) : rej(new Error('SheetJS không khởi tạo được.'));
+    s.onerror = () => rej(new Error('Không tải được thư viện đọc Excel (cần Internet). Hãy lưu file thành “CSV UTF-8” rồi nhập lại.'));
+    document.head.appendChild(s);
+  });
+}
+async function handleFile(file){
+  try {
+    let rows;
+    if (/\.(xlsx|xls)$/i.test(file.name)) {
+      toast('Đang đọc file Excel…');
+      const XLSX = await loadSheetJS();
+      const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:true, defval:''}).filter(r => r.some(c => String(c).trim() !== ''));
+    } else rows = parseCSV(await file.text());
+    const data = rowsToUniverse(rows);
+    stopLive(); state.uni = 'FILE'; saveUI(); syncUniSel();
+    setDataset(data, file.name, false);
+    const stored = ls.set(STORE.data, {source:file.name, rows:data.map(o => { const r = {}; FIELDS.forEach(k => r[k] = k === 'rs' ? o.rsInput : o[k]); return r; })});
+    const rsInfo = data.some(o => o.rsSource === 'Computed') ? 'RS tính từ return 1M–12M.' : data.some(o => o.rsSource === 'Imported') ? 'RS lấy từ cột RS trong file.' : 'File không có return/RS → RS để trống.';
+    toast(`Đã nạp ${data.length} mã từ “${file.name}”. ${rsInfo}` + (stored ? ' Đã ghi nhớ cho lần mở sau.' : ''), 'ok');
+  } catch (e) { toast('Lỗi nhập dữ liệu: ' + e.message, 'err'); }
+  finally { $('#fileInput').value = ''; }
+}
+function setDataset(data, source, isDemo){
+  state.data = data; state.source = source; state.isDemo = isDemo;
+  state.idx = new Map(data.map(o => [o.ticker, o]));
+  const secs = [...new Set(data.map(o => o.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
+  if (state.scope.sector && !secs.includes(state.scope.sector)) state.scope.sector = '';
+  $('#s-sec').innerHTML = '<option value="">Mọi ngành</option>' + secs.map(s => `<option>${esc(s)}</option>`).join('');
+  $('#s-sec').value = state.scope.sector;
+  if (state.selected && !bySym(state.selected)) state.selected = null;
+  renderBreadthHeader(); applyFilters(); renderPanel();
+}
+
+/* =========================================================================
+   11. EXPORT
+   ========================================================================= */
+const RAW_EXPORT = FIELDS.filter(k => k !== 'rs');
+const CALC_EXPORT = [['wyckoff', o => o.wy ? o.wy.label : ''], ['loai', o => o.wy ? o.wy.loai : ''], ['wyWarn', o => o.wy ? o.wy.warn.join('|') : ''], ['capCheoGap', o => o.wy && o.wy.capGap > -999 ? round(o.wy.capGap, 2) : ''], ['ichiScore', o => o.ic ? o.ic.score : ''], ['ichiTrend', o => o.ic ? o.ic.trend : ''], ['chikouSach', o => o.ic ? (o.ic.csClean ? 1 : 0) : ''], ['pDG65', o => o.ic ? round(o.ic.pDG65, 2) : ''], ['volRatio', o => round(o.volRatio, 3)], ['rs', o => o.rs], ['rsSource', o => o.rsSource], ['baseScore', o => o.baseScore], ['trend', o => o.trend], ['radarScore', o => o.score], ['grade', o => o.grade.label],
+  ['signals', o => Object.values(QF).filter(f => f.test(o)).map(f => f.label).join(' | ')], ['watchlist', o => state.watch.has(o.ticker) ? 'x' : '']];
+function csvCell(v){
+  if (v == null) return '';
+  if (typeof v === 'number') v = Math.round(v * 10000) / 10000;
+  const s = String(v);
+  return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCSV(list, filename, withCalc = true){
+  const head = RAW_EXPORT.concat(withCalc ? CALC_EXPORT.map(c => c[0]) : []);
+  const lines = [head.join(',')].concat(list.map(o => RAW_EXPORT.map(k => csvCell(o[k])).concat(withCalc ? CALC_EXPORT.map(c => csvCell(c[1](o))) : []).join(',')));
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; };
+
+/* =========================================================================
+   12. MARKET SESSION ENGINE (giờ Việt Nam – lịch HOSE, chưa trừ ngày lễ)
+   ========================================================================= */
+const SEGS = [
+  [0, 510, 'CLOSED', 'PRE-MARKET'],
+  [510, 540, 'PRE-MARKET', 'ATO'],
+  [540, 555, 'ATO', 'CONTINUOUS'],
+  [555, 690, 'CONTINUOUS', 'LUNCH BREAK'],
+  [690, 780, 'LUNCH BREAK', 'CONTINUOUS'],
+  [780, 870, 'CONTINUOUS', 'ATC'],
+  [870, 885, 'ATC', 'CLOSED'],
+  [885, 1440, 'CLOSED', null]
+];
+const SESS_COLOR = {'PRE-MARKET':'var(--ref)', 'ATO':'var(--ceil)', 'CONTINUOUS':'var(--up)', 'LUNCH BREAK':'var(--ref)', 'ATC':'var(--ceil)', 'CLOSED':'var(--muted)'};
+const WD = {Mon:'Thứ Hai', Tue:'Thứ Ba', Wed:'Thứ Tư', Thu:'Thứ Năm', Fri:'Thứ Sáu', Sat:'Thứ Bảy', Sun:'Chủ Nhật'};
+const WD_IDX = {Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6};
+const vnFmt = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Ho_Chi_Minh', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', weekday:'short', hour12:false});
+function vnNow(){ const p = {}; vnFmt.formatToParts(new Date()).forEach(x => p[x.type] = x.value); return {h:(+p.hour) % 24, m:+p.minute, s:+p.second, wd:p.weekday, d:p.day, mo:p.month, y:p.year}; }
+const hms = sec => { const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60, p = n => String(n).padStart(2, '0'); return (d ? d + 'd ' : '') + p(h) + ':' + p(m) + ':' + p(s); };
+function tickClock(){
+  const n = vnNow(), p = x => String(x).padStart(2, '0'), secDay = n.h * 3600 + n.m * 60 + n.s, wd = WD_IDX[n.wd];
+  $('#clockTime').textContent = `${p(n.h)}:${p(n.m)}:${p(n.s)}`;
+  $('#clockDate').textContent = `${WD[n.wd] || n.wd}, ${n.d}/${n.mo}/${n.y} · GMT+7`;
+  let label, info;
+  const weekend = wd === 0 || wd === 6;
+  const seg = SEGS.find(s => secDay / 60 >= s[0] && secDay / 60 < s[1]) || SEGS[SEGS.length - 1];
+  if (!weekend && seg[3]) {
+    label = seg[2]; info = `Next: ${seg[3]} in ${hms(seg[1] * 60 - secDay)}`;
+    if (secDay >= 885 * 60 && secDay < 900 * 60) info += ' · Put-through đến 15:00';
+  } else {
+    label = 'CLOSED';
+    let days = 1; while ([0, 6].includes((wd + days) % 7)) days++;   // ngày giao dịch kế tiếp (chưa tính lễ)
+    if (!weekend && secDay < 510 * 60) days = 0;
+    info = `Next: ATO in ${hms(days * 86400 - secDay + 540 * 60)}` + (weekend ? ' · Weekend' : '');
+  }
+  const badge = $('#sessBadge');
+  badge.textContent = label; badge.style.color = SESS_COLOR[label];
+  badge.classList.toggle('live', ['ATO', 'CONTINUOUS', 'ATC'].includes(label));
+  $('#sessCount').textContent = info;
+}
+
+/* =========================================================================
+   13. TOAST
+   ========================================================================= */
+function toast(msg, type = ''){
+  const el = document.createElement('div'); el.className = 'toast ' + type; el.textContent = msg;
+  $('#toast').appendChild(el);
+  setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 320); }, type === 'err' ? 6500 : 3500);
+}
+
+/* =========================================================================
+   14. EVENTS
+   ========================================================================= */
+function setSide(pct){
+  state.side = clamp(pct, 25, 65);
+  document.documentElement.style.setProperty('--side', state.side + '%');
+  if (state.chartMode === 'sim') drawSim();
+}
+function bindEvents(){
+  // Bảng
+  $('#tbody').addEventListener('click', e => {
+    const s = e.target.closest('[data-star]'); if (s) { e.stopPropagation(); toggleWatch(s.dataset.star); return; }
+    const tr = e.target.closest('tr[data-t]'); if (tr) selectTicker(tr.dataset.t);
+  });
+  $('#thead').addEventListener('click', e => {
+    const th = e.target.closest('th[data-k]'); if (!th) return;
+    const k = th.dataset.k;
+    if (state.sort.key === k) state.sort.dir *= -1;
+    else state.sort = {key:k, dir:['ticker', 'company', 'sector'].includes(k) ? 1 : -1};
+    saveUI(); applyFilters();
+  });
+  // Quick filters, active filters, sector heat
+  $('#chips').addEventListener('click', e => {
+    const gp = e.target.closest('[data-grp]'); if (gp) { state.chipCol = Object.assign({}, state.chipCol, {[gp.dataset.grp]:!(state.chipCol || {})[gp.dataset.grp]}); saveUI(); renderChips(); return; }
+    const c = e.target.closest('[data-q]'); if (!c) return;
+    const k = c.dataset.q; state.quick.has(k) ? state.quick.delete(k) : state.quick.add(k);
+    saveUI(); applyFilters();
+  });
+  $('#active').addEventListener('click', e => {
+    if (e.target.closest('#modeBtn')) { state.mode = state.mode === 'AND' ? 'OR' : 'AND'; saveUI(); applyFilters(); return; }
+    if (e.target.closest('#clearAll')) { clearAll(); return; }
+    const rm = e.target.closest('[data-rm]'); if (rm) removeFilter(rm.dataset.rm);
+  });
+  $('#sectors').addEventListener('click', e => { const s = e.target.closest('[data-sec]'); if (s) setScopeSector(s.dataset.sec); });
+  // Builder
+  $('#r-f').innerHTML = Object.entries(RULE_FIELDS).map(([k, f]) => `<option value="${k}">${esc(f[0])}</option>`).join('');
+  const addRule = () => {
+    const v = parseNum($('#r-v').value);
+    if (!isNum(v)) { toast('Nhập giá trị số cho điều kiện.', 'err'); $('#r-v').focus(); return; }
+    state.rules.push({f:$('#r-f').value, op:$('#r-op').value, v});
+    $('#r-v').value = ''; saveUI(); applyFilters();
+  };
+  $('#r-add').addEventListener('click', addRule);
+  $('#r-v').addEventListener('keydown', e => { if (e.key === 'Enter') addRule(); });
+  $('#presets').insertAdjacentHTML('beforeend', Object.entries(PRESETS).map(([k, p]) => `<button class="btn sm" data-preset="${k}" title="${esc(p.rules.map(r => ruleLabel({f:r[0], op:r[1], v:r[2]})).join(' AND '))}">${esc(p.label)}</button>`).join(''));
+  $('#presets').addEventListener('click', e => {
+    const b = e.target.closest('[data-preset]'); if (!b) return;
+    const p = PRESETS[b.dataset.preset];
+    state.rules = p.rules.map(r => ({f:r[0], op:r[1], v:r[2]})); state.quick.clear(); state.mode = 'AND';
+    saveUI(); applyFilters(); toast(`Preset “${p.label}”: ${state.view.length} mã thỏa.`);
+  });
+  $('#s-ex').value = state.scope.exchange; $('#s-wl').checked = !!state.scope.wlOnly;
+  $('#s-ex').addEventListener('change', e => { state.scope.exchange = e.target.value; saveUI(); applyFilters(); });
+  $('#s-sec').addEventListener('change', e => { state.scope.sector = e.target.value; saveUI(); applyFilters(); });
+  $('#s-wl').addEventListener('change', e => { state.scope.wlOnly = e.target.checked; saveUI(); applyFilters(); });
+  $('#s-liq').value = state.scope.liq || '';
+  $('#s-liq').addEventListener('change', e => { state.scope.liq = e.target.value; saveUI(); applyFilters(); });
+
+  // Panel
+  $('#panel').addEventListener('click', e => {
+    const s = e.target.closest('[data-star]'); if (s) { toggleWatch(s.dataset.star); return; }
+    const go = e.target.closest('[data-go]'); if (go) { selectTicker(go.dataset.go, true); return; }
+    const ss = e.target.closest('[data-ssort]'); if (ss) { state.secSort = ss.dataset.ssort; saveUI(); renderPanel(); return; }
+    const si = e.target.closest('[data-secidx]'); if (si) { showSector(si.dataset.secidx); return; }
+    const i2 = e.target.closest('[data-idx2]'); if (i2) { selectIndex(i2.dataset.idx2); return; }
+    const sec = e.target.closest('[data-sec]'); if (sec) { setScopeSector(sec.dataset.sec); return; }
+    const op = e.target.closest('[data-open]'); if (!op || !state.selected) return;
+    const k = op.dataset.open;
+    if (k === 'gnews') { window.open(GNEWS(state.selected), '_blank', 'noopener'); return; }
+    if (k === 'max') { toggleMax(true); return; }
+    changeSymbol(state.selected); setChartMode(k);
+    document.querySelector('.chart-panel').scrollIntoView({block:'start', behavior:'smooth'});
+  });
+  let nt;
+  $('#panel').addEventListener('input', e => {
+    if (e.target.id !== 'note' || !state.selected) return;
+    const t = state.selected, v = e.target.value;
+    clearTimeout(nt); nt = setTimeout(() => { if (v.trim()) state.notes[t] = v; else delete state.notes[t]; ls.set(STORE.notes, state.notes); }, 400);
+  });
+
+  // Header
+  $('#indices').addEventListener('click', e => { const b = e.target.closest('[data-idx]'); if (b) selectIndex(b.dataset.idx); });
+
+  // Search
+  const si = $('#search');
+  si.addEventListener('input', () => { state.search = si.value; applyFilters(); renderSuggest(); });
+  si.addEventListener('keydown', e => {
+    const lis = [...document.querySelectorAll('#suggest li')];
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!lis.length) return; e.preventDefault();
+      sugIdx = (sugIdx + (e.key === 'ArrowDown' ? 1 : -1) + lis.length) % lis.length;
+      lis.forEach((li, i) => li.classList.toggle('act', i === sugIdx));
+    } else if (e.key === 'Enter') { if (sugItems[sugIdx]) pickSuggest(sugItems[sugIdx].ticker); }
+    else if (e.key === 'Escape') { clearSearch(); si.blur(); }
+  });
+  si.addEventListener('blur', () => setTimeout(() => $('#suggest').hidden = true, 150));
+  si.addEventListener('focus', renderSuggest);
+  $('#suggest').addEventListener('mousedown', e => { const li = e.target.closest('[data-pick]'); if (li) { e.preventDefault(); pickSuggest(li.dataset.pick); } });
+
+  document.addEventListener('keydown', e => {
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) return;
+    if (e.key === '/') { e.preventDefault(); si.focus(); return; }
+    if (e.key === 'Escape') { if (document.body.classList.contains('chart-max')) toggleMax(false); if (state.search) clearSearch(); $('#menuPop').hidden = true; return; }
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleMax(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!state.view.length) return; e.preventDefault();
+      let i = state.view.findIndex(o => o.ticker === state.selected);
+      i = i < 0 ? 0 : clamp(i + (e.key === 'ArrowDown' ? 1 : -1), 0, state.view.length - 1);
+      selectTicker(state.view[i].ticker, true);
+    }
+  });
+
+  // Chart
+  $('#srcTabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-src]'); if (!b) return;
+    state._restoreMode = null;
+    if (b.dataset.src !== 'sim' && state.chartSymbol.startsWith('#')) state.chartSymbol = state.selected || 'VNINDEX';
+    setChartMode(b.dataset.src);
+  });
+  $('#btnReload').addEventListener('click', reloadChart);
+  $('#btnMax').addEventListener('click', () => toggleMax());
+  $('#btnFs').addEventListener('click', toggleFullscreen);
+  $('#btnIchi').classList.toggle('on', state.ichiOn);
+  $('#btnIchi').addEventListener('click', () => {
+    state.ichiOn = !state.ichiOn; saveUI(); $('#btnIchi').classList.toggle('on', state.ichiOn);
+    if (state.chartMode !== 'sim') { state._restoreMode = null; if (state.chartSymbol.startsWith('#')) state.chartSymbol = state.selected || 'VNINDEX'; setChartMode('sim'); state.ichiOn = true; $('#btnIchi').classList.add('on'); saveUI(); }
+    drawSim();
+  });
+  $('#btnNewTab').addEventListener('click', () => { if (state.chartSymbol.startsWith('#')) return; const u = chartUrl(state.chartMode, state.chartSymbol); if (u) window.open(u, '_blank', 'noopener'); });
+  $('#vinIn').value = state.vin.join(',');
+  const applyVin = () => {
+    const list = [...new Set(($('#vinIn').value.toUpperCase().match(/[A-Z0-9]{3}/g) || []))];
+    const next = list.length ? list : VIN_DEFAULT.slice();
+    $('#vinIn').value = next.join(',');
+    if (next.join(',') === state.vin.join(',')) return;
+    state.vin = next; saveUI(); computeMarket(); renderIndices(); renderPanel();
+    toast('Nhóm Vin: ' + next.join(', ') + ' — đang dựng lại chuỗi ex-Vin…');
+    rebuildSeries();
+  };
+  $('#vinIn').addEventListener('change', applyVin);
+  $('#vinIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyVin(); } });
+  $('#chart-frame').addEventListener('load', () => { clearTimeout(chartLoadTimer); $('#chartLoading').classList.add('off'); });
+  document.addEventListener('fullscreenchange', () => { if (state.chartMode === 'sim') setTimeout(drawSim, 60); });
+
+  // Import / Export / Menu
+  $('#btnImport').addEventListener('click', () => $('#fileInput').click());
+  $('#fileInput').addEventListener('change', e => { const f = e.target.files[0]; if (f) handleFile(f); });
+  $('#btnExport').addEventListener('click', () => {
+    if (!state.view.length) { toast('Danh sách đang lọc trống – không có gì để xuất.', 'err'); return; }
+    downloadCSV(state.view, `vn-radar_${stamp()}.csv`); toast(`Đã xuất ${state.view.length} mã (kèm Radar Score, RS, Signals).`, 'ok');
+  });
+  $('#btnMenu').addEventListener('click', e => { e.stopPropagation(); $('#menuPop').hidden = !$('#menuPop').hidden; });
+  document.addEventListener('click', e => { if (!e.target.closest('.menu')) $('#menuPop').hidden = true; });
+  $('#btnTemplate').addEventListener('click', () => {
+    downloadCSV(demoUniverse().filter(o => ['FPT', 'HAH', 'PVS'].includes(o.ticker)), 'vn-radar_template.csv', false);
+    $('#menuPop').hidden = true;
+    toast('File mẫu: bắt buộc cột ticker. Có ret1m/3m/6m/12m → RS được tính percentile; thiếu cột nào thì chỉ số liên quan bỏ trống.');
+  });
+  $('#btnExportWl').addEventListener('click', () => {
+    $('#menuPop').hidden = true;
+    const list = sortList(state.data.filter(o => state.watch.has(o.ticker)));
+    if (!list.length) { toast('Watchlist đang trống.', 'err'); return; }
+    downloadCSV(list, `vn-radar_watchlist_${stamp()}.csv`); toast(`Đã xuất ${list.length} mã Watchlist.`, 'ok');
+  });
+  $('#btnDemo').addEventListener('click', () => { $('#menuPop').hidden = true; useDemo(); toast('Đang dùng Demo Dataset (offline). Chọn lại HOSE · Live ở ô phạm vi quét để về dữ liệu thật.', 'ok'); });
+  $('#btnResetCache').addEventListener('click', () => {
+    $('#menuPop').hidden = true; Object.values(LKEY).forEach(k => ls.del(k));
+    startLive(UNIVERSES[state.uni] ? state.uni : 'HOSE'); toast('Đã xóa cache – đang tải lại toàn bộ dữ liệu.');
+  });
+  $('#uniSel').addEventListener('change', e => {
+    const v = e.target.value;
+    if (v === 'DEMO') useDemo();
+    else if (v === 'FILE') useSavedFile();
+    else startLive(v);
+  });
+  $('#btnRefresh').addEventListener('click', () => {
+    if (live.on && live.tickers.length) { liveTick(true); toast('Đã cập nhật bảng giá.'); }
+    else if (UNIVERSES[state.uni]) startLive(state.uni);
+    else toast('Đang ở chế độ ' + (state.uni === 'DEMO' ? 'Demo' : 'File') + ' – chọn một phạm vi Live để lấy dữ liệu thật.');
+  });
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+
+  // Resize sidebar
+  const gut = $('#gutter'); let drag = false;
+  gut.addEventListener('pointerdown', e => { drag = true; gut.setPointerCapture(e.pointerId); gut.classList.add('drag'); document.body.classList.add('resizing'); });
+  gut.addEventListener('pointermove', e => { if (drag) setSide(e.clientX / window.innerWidth * 100); });
+  const end = () => { if (!drag) return; drag = false; gut.classList.remove('drag'); document.body.classList.remove('resizing'); saveUI(); };
+  gut.addEventListener('pointerup', end); gut.addEventListener('pointercancel', end);
+  gut.addEventListener('dblclick', () => { setSide(40); saveUI(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (state.chartMode === 'sim') drawSim(); }, 120); });
+}
+
+
+/* =========================================================================
+   16. MOBILE / TABLET — 1 màn hình 1 chức năng (≤980px) + chuyển cài đặt giữa thiết bị
+   ========================================================================= */
+const SITE_URL = 'https://xuantienmai89.github.io/vn-stock-radar/';
+const mq = window.matchMedia('(max-width:980px)');
+const isMobile = () => mq.matches;
+state.mv = 'radar';
+function fitHeader(){ document.documentElement.style.setProperty('--hdr', document.querySelector('.top').offsetHeight + 'px'); }
+function setMV(v){
+  state.mv = v;
+  document.body.classList.remove('mv-radar', 'mv-chart', 'mv-ana', 'mv-mkt');
+  document.body.classList.add('mv-' + v);
+  document.querySelectorAll('#mnav [data-mv]').forEach(b => b.classList.toggle('on', b.dataset.mv === v));
+  if (v === 'mkt' && state.selected) { state.selected = null; document.querySelectorAll('#tbody tr.sel').forEach(r => r.classList.remove('sel')); renderPanel(); renderIndices(); mvLabels(); }
+  if (v === 'ana' && !state.selected) toast('Chưa chọn mã — đang hiện tổng quan thị trường. Chạm một mã ở Radar để phân tích.');
+  fitHeader();
+  if (v === 'chart' && state.chartMode === 'sim') setTimeout(drawSim, 30);
+  const pane = v === 'ana' || v === 'mkt' ? $('#panel') : null; if (pane) pane.scrollTop = 0;
+}
+function mvLabels(){ const t = state.selected; $('#mvChartLbl').textContent = state.chartSymbol && !state.chartSymbol.startsWith('#') ? state.chartSymbol : (t || 'Biểu đồ'); $('#mvAnaLbl').textContent = t || 'Phân tích'; }
+const b64u = str => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = x => decodeURIComponent(escape(atob(x.replace(/-/g, '+').replace(/_/g, '/'))));
+function syncLink(withNotes){
+  const base = location.protocol.startsWith('http') ? location.origin + location.pathname : SITE_URL;
+  const d = {v:1, wl:[...state.watch], ui:{quick:[...state.quick], rules:state.rules, mode:state.mode, scope:state.scope, vin:state.vin, uni:state.uni}};
+  if (withNotes && Object.keys(state.notes).length) d.notes = state.notes;
+  return base + '#s=' + b64u(JSON.stringify(d));
+}
+function loadQRLib(){
+  if (window.QRCode) return Promise.resolve();
+  return new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+}
+function openSync(){
+  const full = syncLink(true), short = syncLink(false), qrText = full.length <= 1500 ? full : short;
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="box">
+    <h3>📲 Chuyển sang thiết bị khác</h3>
+    <div class="muted" style="font-size:12px">Quét mã bằng camera điện thoại/máy tính bảng ⇒ mở dashboard kèm <b>${state.watch.size}</b> mã Watchlist, bộ lọc, nhóm Vin${qrText === full && Object.keys(state.notes).length ? ` và <b>${Object.keys(state.notes).length}</b> ghi chú` : ''}. Dữ liệu chỉ nằm trong đường link, không gửi lên máy chủ nào.</div>
+    <div class="qr" id="qrBox"><span style="color:#000;font-size:12px">Đang tạo mã QR…</span></div>
+    ${qrText !== full ? '<div class="dim" style="font-size:11px">Ghi chú quá dài cho QR — mã QR chỉ mang Watchlist & bộ lọc; dùng link đầy đủ bên dưới để chuyển cả ghi chú.</div>' : ''}
+    <div class="sec-h" style="margin-top:8px">Link đầy đủ</div>
+    <textarea readonly id="syncTxt">${esc(full)}</textarea>
+    <div class="row"><button class="btn primary" id="syncCopy">Sao chép link</button><button class="btn" id="syncClose">Đóng</button></div></div>`;
+  document.body.appendChild(m);
+  const close = () => m.remove();
+  m.addEventListener('click', e => { if (e.target === m || e.target.id === 'syncClose') close(); });
+  $('#syncCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(full); toast('Đã sao chép link.', 'ok'); } catch (e) { $('#syncTxt').select(); document.execCommand && document.execCommand('copy'); toast('Đã chọn link — nhấn giữ để sao chép.'); } });
+  loadQRLib().then(() => { const box = $('#qrBox'); if (!box) return; box.innerHTML = ''; new QRCode(box, {text:qrText, width:232, height:232, correctLevel:QRCode.CorrectLevel.L}); })
+    .catch(() => { const box = $('#qrBox'); if (box) box.innerHTML = '<span style="color:#000;font-size:12px">Không tải được thư viện QR (cần Internet) — dùng link bên dưới.</span>'; });
+}
+function applySyncHash(){
+  const m = location.hash.match(/#s=([A-Za-z0-9_-]+)/); if (!m) return;
+  try {
+    const d = JSON.parse(unb64u(m[1])); let added = 0;
+    (d.wl || []).forEach(t => { if (/^[A-Z0-9]{3,10}$/.test(t) && !state.watch.has(t)) { state.watch.add(t); added++; } });
+    ls.set(STORE.wl, [...state.watch]);
+    let nn = 0; if (d.notes && typeof d.notes === 'object') { Object.entries(d.notes).forEach(([k, v]) => { if (typeof v === 'string') { state.notes[k] = v; nn++; } }); ls.set(STORE.notes, state.notes); }
+    const u = d.ui || {};
+    if (Array.isArray(u.quick)) state.quick = new Set(u.quick.filter(k => QF[k]));
+    if (Array.isArray(u.rules)) state.rules = u.rules.filter(r => RULE_FIELDS[r.f] && OPS[r.op] && isNum(r.v));
+    if (u.mode === 'AND' || u.mode === 'OR') state.mode = u.mode;
+    if (u.scope && typeof u.scope === 'object') state.scope = Object.assign({exchange:'', sector:'', wlOnly:false, liq:''}, u.scope);
+    if (Array.isArray(u.vin) && u.vin.length) state.vin = u.vin.filter(t => /^[A-Z0-9]{3}$/.test(t));
+    if (UNIVERSES[u.uni]) state.uni = u.uni;
+    saveUI();
+    setTimeout(() => toast(`Đã nhận cài đặt từ thiết bị khác: +${added} mã Watchlist (tổng ${state.watch.size})${nn ? ', ' + nn + ' ghi chú' : ''}.`, 'ok'), 400);
+  } catch (e) { setTimeout(() => toast('Link đồng bộ không hợp lệ hoặc bị cắt ngắn.', 'err'), 400); }
+  history.replaceState(null, '', location.pathname + location.search);
+}
+function bindMobile(){
+  $('#btnFilt').addEventListener('click', () => { document.body.classList.toggle('filt-open'); renderActive(); });
+  $('#mnav').addEventListener('click', e => { const b = e.target.closest('[data-mv]'); if (b) setMV(b.dataset.mv); });
+  $('#btnSync').addEventListener('click', () => { $('#menuPop').hidden = true; openSync(); });
+  window.addEventListener('resize', fitHeader);
+  if (mq.addEventListener) mq.addEventListener('change', () => { fitHeader(); if (state.chartMode === 'sim') setTimeout(drawSim, 50); });
+  setMV('radar');
+}
+/* =========================================================================
+   15. INIT
+   ========================================================================= */
+function useDemo(){
+  stopLive(); state.uni = 'DEMO'; saveUI(); syncUniSel();
+  setLive('', 'Demo offline · không kết nối dữ liệu');
+  setDataset(demoUniverse(), 'Demo', true); renderIndices();
+}
+function useSavedFile(){
+  const saved = ls.get(STORE.data, null);
+  let data = null;
+  if (saved && Array.isArray(saved.rows) && saved.rows.length) {
+    try { data = buildUniverse(saved.rows.map(normalizeRow).filter(o => o.ticker), false); } catch (e) { data = null; }
+  }
+  if (!data || !data.length) { toast('Chưa có file nào được nhập – chuyển về HOSE · Live.'); startLive('HOSE'); return; }
+  stopLive(); state.uni = 'FILE'; saveUI(); syncUniSel();
+  setLive('', 'Dữ liệu từ file · ' + (saved.source || ''));
+  setDataset(data, saved.source || 'File đã nhập', false); renderIndices();
+}
+(function init(){
+  applySyncHash();
+  setSide(state.side);
+  bindEvents();
+  bindMobile();
+  renderIndices();
+  setChartMode(state.chartMode);
+  if (state.uni === 'DEMO') useDemo();
+  else if (state.uni === 'FILE') useSavedFile();
+  else startLive(state.uni);
+  tickClock();
+  setInterval(() => { tickClock(); liveTick(false); if (live.on && !live.busy && vnNow().s % 15 === 0) liveStatusOk(); }, 1000);
+})();
+</script>
+</body>
+</html>
