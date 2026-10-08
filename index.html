@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="locked">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -348,15 +348,40 @@ textarea.note:focus{border-color:var(--accent)}
   #toast{bottom:calc(66px + env(safe-area-inset-bottom));right:10px;left:10px}
   .toast{max-width:none}
 }
+
+/* ---- LOCK (khóa mật khẩu đơn giản) ---- */
+html.locked body>*:not(#lock){display:none!important}
+#lock{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at top,#16233a 0%,#0b1220 60%);padding:16px}
+html:not(.locked) #lock{display:none}
+#lock .lk{width:100%;max-width:340px;background:#111a2b;border:1px solid #24324a;border-radius:12px;padding:26px 22px;box-shadow:0 20px 50px rgba(0,0,0,.45);text-align:center;font-family:Inter,system-ui,sans-serif;color:#d6deeb}
+#lock .lk-logo{width:44px;height:44px;border-radius:10px;background:#2962ff;color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+#lock h1{font-size:17px;letter-spacing:.08em;margin:0;color:#fff}
+#lock .lk-by{font-size:12px;color:#8b98ad;margin:4px 0 18px}
+#lock input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:8px;border:1px solid #2c3b56;background:#0b1220;color:#fff;font-size:16px;outline:none}
+#lock input:focus{border-color:#2962ff}
+#lock button{width:100%;margin-top:10px;padding:11px;border:0;border-radius:8px;background:#2962ff;color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+#lock .lk-err{min-height:18px;font-size:12px;color:#f23645;margin-top:8px}
+#lock.shake .lk{animation:lkshake .35s}
+@keyframes lkshake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
 </style>
 </head>
 <body>
+<div id="lock" role="dialog" aria-label="Nhập mật khẩu">
+  <form class="lk" id="lockForm" autocomplete="off">
+    <div class="lk-logo">R</div>
+    <h1>VN-STOCK RADAR</h1>
+    <div class="lk-by">By Mai Xuân Tiến</div>
+    <input type="password" id="lockPw" placeholder="Nhập mật khẩu" autocomplete="current-password" autofocus>
+    <button type="submit">Mở</button>
+    <div class="lk-err" id="lockErr"></div>
+  </form>
+</div>
 
 <!-- ======================= HEADER ======================= -->
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v2.6">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v2.7">By Mai Xuân Tiến</div></div>
   </div>
   <div class="indices" id="indices" title="Bấm để mở biểu đồ chỉ số"></div>
   <div class="bh" id="breadthH"></div>
@@ -2591,7 +2616,7 @@ function useSavedFile(){
   setLive('', 'Dữ liệu từ file · ' + (saved.source || ''));
   setDataset(data, saved.source || 'File đã nhập', false); renderIndices();
 }
-(function init(){
+function init(){
   applySyncHash();
   setSide(state.side);
   bindEvents();
@@ -2603,6 +2628,54 @@ function useSavedFile(){
   else startLive(state.uni);
   tickClock();
   setInterval(() => { tickClock(); liveTick(false); if (live.on && !live.busy && vnNow().s % 15 === 0) liveStatusOk(); }, 1000);
+}
+
+/* =========================================================================
+   LOCK GATE — khóa mật khẩu đơn giản (chặn người xem lướt, KHÔNG phải mã hóa)
+   Hỏi mỗi lần mở trang; không ghi nhớ trên thiết bị.
+   ========================================================================= */
+const LOCK = {salt:'vnradar·2026·', hash:'b71131ed0229e6cabe41b0d5817e0b87bca8168c885d1190df68637e9b3401a2'};
+function sha256hex(str){
+  const bytes = new TextEncoder().encode(str);
+  if (window.crypto && crypto.subtle) {
+    return crypto.subtle.digest('SHA-256', bytes).then(b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''));
+  }
+  // dự phòng khi trình duyệt không có crypto.subtle (trang http thường)
+  const K = [], H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  let n = 2, c = 0;
+  while (c < 64) { let p = true; for (let i = 2; i * i <= n; i++) if (n % i === 0) { p = false; break; } if (p) K[c++] = (Math.pow(n, 1/3) % 1) * 4294967296 | 0; n++; }
+  const l = bytes.length, wl = ((l + 8) >> 6) + 1 << 4, W = new Array(wl).fill(0);
+  for (let i = 0; i < l; i++) W[i >> 2] |= bytes[i] << (24 - (i % 4) * 8);
+  W[l >> 2] |= 0x80 << (24 - (l % 4) * 8); W[wl - 1] = l * 8;
+  const r = (x, k) => (x >>> k) | (x << (32 - k));
+  for (let j = 0; j < wl; j += 16) {
+    const w = W.slice(j, j + 16); let [a, b, cc, d, e, f, g, h] = H;
+    for (let i = 0; i < 64; i++) {
+      if (i >= 16) { const s0 = r(w[i-15],7) ^ r(w[i-15],18) ^ (w[i-15] >>> 3), s1 = r(w[i-2],17) ^ r(w[i-2],19) ^ (w[i-2] >>> 10); w[i] = (w[i-16] + s0 + w[i-7] + s1) | 0; }
+      const t1 = (h + (r(e,6) ^ r(e,11) ^ r(e,25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+      const t2 = ((r(a,2) ^ r(a,13) ^ r(a,22)) + ((a & b) ^ (a & cc) ^ (b & cc))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = cc; cc = b; b = a; a = (t1 + t2) | 0;
+    }
+    [a, b, cc, d, e, f, g, h].forEach((v, i) => H[i] = (H[i] + v) | 0);
+  }
+  return Promise.resolve(H.map(v => (v >>> 0).toString(16).padStart(8, '0')).join(''));
+}
+let _started = false;
+function unlockApp(){
+  if (_started) return; _started = true;
+  document.documentElement.classList.remove('locked');
+  init();
+}
+(function lockGate(){
+  const f = document.getElementById('lockForm'), pw = document.getElementById('lockPw'), err = document.getElementById('lockErr');
+  setTimeout(() => pw.focus(), 50);
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const h = await sha256hex(LOCK.salt + pw.value);
+    if (h === LOCK.hash) { pw.value = ''; unlockApp(); return; }
+    err.textContent = 'Sai mật khẩu'; pw.select();
+    const box = document.getElementById('lock'); box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+  });
 })();
 </script>
 </body>
