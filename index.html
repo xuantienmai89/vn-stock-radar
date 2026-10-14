@@ -662,7 +662,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.5">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.5.1">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -795,7 +795,7 @@ table.compact .x-full{display:none}
         <div class="tabs rgsel" id="simRange" hidden></div>
         <button class="btn sm" id="btnReload" title="Tải lại biểu đồ">↻</button>
         <button class="btn sm" id="btnMax" title="Phóng to biểu đồ trong dashboard (phím F)">⤢ Phóng to</button>
-        <button class="btn sm" id="btnBB" title="Dải Bollinger (20, 2) trên biểu đồ Nội bộ — bật mặc định">BB</button>
+        <button class="btn sm" id="btnBB" title="Dải Bollinger (20, 2) trên biểu đồ Nội bộ chế độ MA20/MA50 (khi tắt Ichimoku) — bật mặc định">BB</button>
         <button class="btn sm" id="btnIchi" title="Đường Ichimoku 9·17 + dao găm 65/129 + Chikou trên biểu đồ Nội bộ — bật: Mây theo hệ 9·17·26 · tắt: vẫn hiện Mây chuẩn 9·26·52">Ichimoku</button>
         <button class="btn sm" id="btnFs" title="Toàn màn hình (Esc để thoát)">⛶</button>
         <button class="btn sm" id="btnNewTab" title="Mở nguồn hiện tại ở tab mới (dự phòng)">↗</button>
@@ -2624,7 +2624,7 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
   const off = clamp(Math.round(state.simOff || 0), 0, nA - win); state.simOff = off;
   const end = n - off, s0 = end - win, ichi = !!(state.ichiOn && X.tk);
   const CL = ichi ? (X.sa && X.sb ? {sa:X.sa, sb:X.sb} : null) : classicCloud(X), cloud = !!CL;   // v3.5: Mây luôn hiện — tắt Ichimoku: Mây chuẩn 9·26·52
-  const bb = state.bbOn !== false ? bbOf(X.c) : null;                                                  // v3.4: dải Bollinger 20,2
+  const bb = !ichi && state.bbOn !== false ? bbOf(X.c) : null;                                         // v3.4: dải Bollinger 20,2 — chỉ ở chế độ MA20/MA50
   const fut = cloud && off === 0 ? 26 : 0, slots = win + fut;
   const padL = 8, padR = 62, padT = 30, padB = 20, volH = Math.round(H * 0.16), priceH = H - volH - padT - padB - 4;
   const cl = p => { const q = p - 26; return CL && q >= 0 && q < n && CL.sa[q] !== null && CL.sb[q] !== null ? [CL.sa[q], CL.sb[q]] : null; };
@@ -2695,7 +2695,7 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
     line(X.ma20, '#f5a623', 1.4, s0, end); line(X.ma50, '#2962ff', 1.4, s0, end);
     legend.push(['MA20', '#f5a623'], ['MA50', '#2962ff']);
   }
-  if (cloud) legend.push([ichi ? 'Mây 9·17·26' : 'Mây 9·26·52', '#00b06f']);
+  if (cloud) legend.push([ichi ? 'Mây 26' : 'Mây 9·26·52', '#00b06f']);
   if (bb) legend.push(['BB 20,2', '#818cf8']);
   if (levels && levels.length) {                                            // v3.0: vùng vào · cắt lỗ · mục tiêu
     g.font = 'bold 10px JetBrains Mono, monospace'; const placed = [];
