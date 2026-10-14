@@ -623,6 +623,18 @@ table.compact .x-full{display:none}
   .lightbar .ld{flex-basis:100%}
   .dcard{grid-template-columns:1fr}
 }
+
+/* v3.0.2 · trang Cổ phiếu: ưu tiên chiều cao biểu đồ (màn hình thấp / phóng to chữ) */
+@media (min-width:981px){
+  body.pg-stock .work{grid-template-rows:auto minmax(0,1fr) minmax(190px,31%)}
+  body.pg-stock .chart-hint{display:none}
+  body.pg-stock .sb-dec{padding-top:3px}
+}
+@media (min-width:981px) and (max-height:820px){
+  body.pg-stock .work{grid-template-rows:auto minmax(0,1fr) minmax(128px,25%)}
+  body.pg-stock .stkbar{padding:4px 10px}
+  body.pg-stock .chart-bar{padding:3px 10px}
+}
 </style>
 </head>
 <body>
@@ -644,7 +656,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.0.1">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.0.2">By Mai Xuân Tiến</div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
