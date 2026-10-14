@@ -656,7 +656,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.1">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.2">By Mai Xuân Tiến</div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -783,6 +783,7 @@ table.compact .x-full{display:none}
           <button data-src="vs" class="on" title="Biểu đồ kỹ thuật đầy đủ (TradingView engine) – đổi mã tự động">Vietstock<span class="x"> Chart</span></button>
           <button data-src="fa" title="Trang mã FireAnt: chart + chỉ số cơ bản + tin tức/thảo luận – đổi mã tự động">FireAnt<span class="x"> Hồ sơ</span></button>
           <button data-src="sim" title="Biểu đồ nội bộ: nến ngày thật từ VPS khi Live (toàn bộ lịch sử, lăn chuột để phóng to/thu nhỏ, kéo để xem quá khứ), mô phỏng khi Demo">Nội bộ</button>
+          <button data-src="mtf" title="Đa khung kiểu AmiBroker: Ngày VSA · Tuần Ichimoku · Ngày Ichimoku · Tháng Ichimoku — cùng lúc 4 khung">Đa khung</button>
         </div>
         <div class="tabs rgsel" id="simRange" hidden></div>
         <button class="btn sm" id="btnReload" title="Tải lại biểu đồ">↻</button>
@@ -1165,7 +1166,7 @@ const ruleLabel = r => `${RULE_FIELDS[r.f][0]} ${OPS[r.op][1]} ${r.v}`;
 const ui = ls.get(STORE.ui, {});
 const state = {
   data:[], source:'Demo', isDemo:true, view:[],
-  selected:null, chartSymbol:'VNINDEX', activeIndex:'VNINDEX', chartMode: ['vs','fa','sim'].includes(ui.chartMode) ? ui.chartMode : 'vs',
+  selected:null, chartSymbol:'VNINDEX', activeIndex:'VNINDEX', chartMode: !(ui.v >= 32) ? 'mtf' : ['vs','fa','sim','mtf'].includes(ui.chartMode) ? ui.chartMode : 'vs', mtfZ:1, simHy:null,
   sort: ui.v >= 30 && ui.sort ? ui.sort : {key:'dvo', dir:-1},
   dv: ['buy', 'wb', 'wt', 'wn', 'out', 'na', 'star'].includes(ui.dv) ? ui.dv : '', compact: ui.compact !== false, light:null,
   quick: new Set((ui.quick || []).filter(k => QF[k])),
@@ -1182,7 +1183,7 @@ const state = {
   watch: new Set(ls.get(STORE.wl, [])),
   notes: ls.get(STORE.notes, {})
 };
-const saveUI = () => ls.set(STORE.ui, {sort:state.sort, quick:[...state.quick], rules:state.rules, mode:state.mode, scope:state.scope, side:state.side, chartMode:state.chartMode, uni:state.uni, vin:state.vin, secSort:state.secSort, ichiOn:state.ichiOn, chipCol:state.chipCol, simWin:state.simWin, tapeOn:TAPE.on, tapeTab:TAPE.tab, tapeBig:TAPE.big, page:state.page, recent:state.recent, dv:state.dv, compact:state.compact, v:30});
+const saveUI = () => ls.set(STORE.ui, {sort:state.sort, quick:[...state.quick], rules:state.rules, mode:state.mode, scope:state.scope, side:state.side, chartMode:state.chartMode, uni:state.uni, vin:state.vin, secSort:state.secSort, ichiOn:state.ichiOn, chipCol:state.chipCol, simWin:state.simWin, tapeOn:TAPE.on, tapeTab:TAPE.tab, tapeBig:TAPE.big, page:state.page, recent:state.recent, dv:state.dv, compact:state.compact, v:32});
 /* Khung Khớp lệnh — khai báo sớm vì saveUI dùng tới (logic ở mục 17) */
 const BIG_OPTS = [[1e8, '100 triệu'], [3e8, '300 triệu'], [5e8, '500 triệu'], [1e9, '1 tỷ'], [2e9, '2 tỷ'], [5e9, '5 tỷ'], [1e10, '10 tỷ']];
 const TAPE = {
@@ -1464,7 +1465,7 @@ async function startLive(uni){
     live.busy = false;
     $('#empty').textContent = 'Không có mã nào thỏa bộ lọc hiện tại.';
     rebuildLive(); renderIndices();
-    if (state.chartMode === 'sim') drawSim();
+    if (isCanvasMode()) drawSim();
     await loadHistory(g, false);
     if (g !== live.gen) return;
     live.phase = ''; setProgress(null); rebuildLive(); liveStatusOk();
@@ -1494,7 +1495,7 @@ async function liveTick(force){
     if (ix) state.idxLive = ix;
     live.updated = new Date();
     rebuildLive(); renderIndices(); liveStatusOk();
-    if (state.chartMode === 'sim') drawSim();
+    if (isCanvasMode()) drawSim();
   } catch (e) {
     if (g === live.gen) setLive('err', `Lỗi cập nhật (${hhmmss(new Date())}) – tự thử lại`);
   } finally {
@@ -1639,7 +1640,7 @@ async function rebuildSeries(){
   await loadHistory(g, true);
   if (g !== live.gen) return;
   live.phase = ''; setProgress(null); rebuildLive(); liveStatusOk();
-  if (state.chartMode === 'sim') drawSim();
+  if (isCanvasMode()) drawSim();
 }
 
 /* =========================================================================
@@ -2408,7 +2409,8 @@ const CHART_SRC = {
         hint: 'Vietstock Chart · TradingView engine. Nút ☀ góc trên chart để chuyển nền tối (Vietstock tự ghi nhớ).'},
   fa:  {url: t => 'https://fireant.vn/ma-chung-khoan/' + encodeURIComponent(t),
         hint: 'FireAnt Hồ sơ · chart + chỉ số cơ bản thực + tin tức/thảo luận. Cuộn bên trong khung để xem thêm.'},
-  sim: {url: null, hint: 'Nội bộ · toàn bộ lịch sử ngày (VPS) · lăn chuột: phóng to/thu nhỏ · kéo: xem quá khứ · nhấp đúp: về hiện tại · 3Th…Max: khung thời gian'}
+  sim: {url: null, hint: 'Nội bộ · toàn bộ lịch sử ngày (VPS) · lăn chuột: phóng to/thu nhỏ · kéo: xem quá khứ · nhấp đúp: về hiện tại · 3Th…Max: khung thời gian'},
+  mtf: {url: null, hint: 'Đa khung · Ngày VSA · Tuần / Ngày / Tháng Ichimoku (nến tuần/tháng gộp từ nến ngày VPS) · lăn chuột: phóng to/thu nhỏ cả 4 khung · nhấp đúp: mặc định · ⤢ Phóng to để xem rộng'}
 };
 let chartLoadTimer;
 function chartUrl(mode, t){ const s = CHART_SRC[mode]; return s && s.url ? s.url(t) : null; }
@@ -2447,7 +2449,7 @@ function setChartMode(mode){
   if (!CHART_SRC[mode]) mode = 'vs';
   state.chartMode = mode; saveUI();
   document.querySelectorAll('#srcTabs [data-src]').forEach(b => b.classList.toggle('on', b.dataset.src === mode));
-  const isFrame = mode !== 'sim';
+  const isFrame = mode !== 'sim' && mode !== 'mtf';
   $('#chart-frame').hidden = !isFrame;
   $('#chartLoading').hidden = !isFrame;
   $('#simCanvas').hidden = isFrame;
@@ -2471,7 +2473,7 @@ function toggleMax(force){
   document.querySelector('.work').classList.toggle('max', on);
   $('#btnMax').classList.toggle('on', on);
   $('#btnMax').textContent = on ? '⤡ Thu nhỏ' : '⤢ Phóng to';
-  if (state.chartMode === 'sim') setTimeout(drawSim, 30);
+  if (isCanvasMode()) setTimeout(drawSim, 30);
 }
 function toggleFullscreen(){
   const el = $('#chartBody');
@@ -2494,6 +2496,7 @@ function genBars(o, N = 140){
   return bars;
 }
 function drawSim(){
+  if (state.chartMode === 'mtf') { drawMTF(); return; }
   const cv = $('#simCanvas'), box = $('#chartBody'), W = box.clientWidth, H = box.clientHeight, dpr = window.devicePixelRatio || 1;
   if (!W || !H) return;
   cv.width = W * dpr; cv.height = H * dpr;
@@ -2514,7 +2517,7 @@ function drawSim(){
         live.barCache.set(sym, null);
         fetchHist(sym, 400).then(j => live.barCache.set(sym, {d:j.t.map(x => new Date(x * 1000).toISOString().slice(0, 10)), o:j.o, h:j.h, l:j.l, c:j.c, v:j.v}))
           .catch(() => live.barCache.set(sym, {c:[]}))
-          .then(() => { if (state.chartMode === 'sim' && state.chartSymbol === sym) drawSim(); });
+          .then(() => { if (isCanvasMode() && state.chartSymbol === sym) drawSim(); });
         return;
       }
       if (B === null) { msg('Đang tải nến ngày ' + sym + '…'); return; }
@@ -2697,7 +2700,7 @@ function chartSeries(sym){
     fetchHist(sym, LONG_DAYS)
       .then(j => live.longCache.set(sym, {d:j.t.map(x => new Date(x * 1000).toISOString().slice(0, 10)), o:j.o, h:j.h, l:j.l, c:j.c, v:j.v, ts:Date.now()}))
       .catch(() => live.longCache.set(sym, {c:[], fail:true, ts:Date.now() - LONG_TTL + 120e3}))      // lỗi → 2 phút sau thử lại
-      .then(() => { if (state.chartMode === 'sim' && state.chartSymbol === sym) drawSim(); });
+      .then(() => { if (isCanvasMode() && state.chartSymbol === sym) drawSim(); });
     return 'wait';
   }
   if (L === null) return 'wait';
@@ -2751,7 +2754,7 @@ function bindSimNav(){
     state.simWin = nw; state.simOff = G.n - (s0 + nw); simRedraw(); syncRangeBtns();
     clearTimeout(state._svT); state._svT = setTimeout(saveUI, 400);
   };
-  cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.deltaY > 0 ? 1.18 : 1 / 1.18); }, {passive:false});
+  cv.addEventListener('wheel', e => { e.preventDefault(); if (state.chartMode === 'mtf') { state.mtfZ = clamp((state.mtfZ || 1) * (e.deltaY > 0 ? 1.15 : 1 / 1.15), 0.35, 5); simRedraw(); return; } const r = cv.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.deltaY > 0 ? 1.18 : 1 / 1.18); }, {passive:false});
   let drag = null;
   cv.addEventListener('mousedown', e => { const G = state._geo; if (!G || e.button !== 0) return; drag = {x:e.clientX, off:state.simOff, cw:G.cw, n:G.n, win:G.win}; cv.style.cursor = 'grabbing'; e.preventDefault(); });
   window.addEventListener('mousemove', e => {
@@ -2760,9 +2763,9 @@ function bindSimNav(){
     if (off !== state.simOff) { state.simOff = off; simRedraw(); }
   });
   window.addEventListener('mouseup', () => { if (drag) { drag = null; cv.style.cursor = ''; } });
-  cv.addEventListener('mousemove', e => { if (drag) return; const r = cv.getBoundingClientRect(); state.simHx = e.clientX - r.left; simRedraw(); });
+  cv.addEventListener('mousemove', e => { if (drag) return; const r = cv.getBoundingClientRect(); state.simHx = e.clientX - r.left; state.simHy = e.clientY - r.top; simRedraw(); });
   cv.addEventListener('mouseleave', () => { state.simHx = null; simRedraw(); });
-  cv.addEventListener('dblclick', () => { state.simOff = 0; simRedraw(); });
+  cv.addEventListener('dblclick', () => { state.simOff = 0; state.mtfZ = 1; simRedraw(); });
   let t0 = null;
   cv.addEventListener('touchstart', e => {
     const G = state._geo; if (!G) return;
@@ -2779,6 +2782,255 @@ function bindSimNav(){
     }
   }, {passive:false});
   cv.addEventListener('touchend', () => { if (t0) { t0 = null; saveUI(); syncRangeBtns(); } });
+}
+
+/* =========================================================================
+   8c. ĐA KHUNG (v3.2) — 4 khung cùng lúc như bố cục AmiBroker của Sếp:
+       ┌ Ngày · VSA (EMA6/EMA10/MA50/MA200 · BB20 · Volume Profile · mũi tên VSA · KL + MA V20/V5)
+       ├ Tuần · Ichimoku 9·17·26 + DG65/129 (B1/B2/B3 + dải trạng thái)
+       ├ Ngày · Ichimoku
+       └ Tháng · Ichimoku (Tenkan · Kijun · D1=DG65 · D2=DG129 · khoảng cách)
+   Nến tuần/tháng GỘP từ nến ngày VPS (gồm cả phiên đang chạy). Trạng thái B1/B2/B3 dùng đúng techSignals đã kiểm chứng.
+   Lăn chuột: phóng to/thu nhỏ cả 4 khung · nhấp đúp: về mặc định · rê chuột: đọc O/H/L/C/V.
+   ========================================================================= */
+const isCanvasMode = () => state.chartMode === 'sim' || state.chartMode === 'mtf';
+function emaArr(A, p){ const k = 2 / (p + 1), out = new Array(A.length); let e = null; for (let i = 0; i < A.length; i++) { e = e === null ? A[i] : A[i] * k + e * (1 - k); out[i] = e; } return out; }
+function bollArr(C, p, m){
+  const up = new Array(C.length).fill(null), dn = new Array(C.length).fill(null); let s = 0, s2 = 0;
+  for (let i = 0; i < C.length; i++) {
+    s += C[i]; s2 += C[i] * C[i]; if (i >= p) { s -= C[i - p]; s2 -= C[i - p] * C[i - p]; }
+    if (i >= p - 1) { const mu = s / p, sd = Math.sqrt(Math.max(0, s2 / p - mu * mu)); up[i] = mu + m * sd; dn[i] = mu - m * sd; }
+  }
+  return {up, dn};
+}
+function weekKey(d){ const t = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)), wd = (new Date(t).getUTCDay() + 6) % 7; return new Date(t - wd * 864e5).toISOString().slice(0, 10); }
+function resampleBars(B, mode){
+  const o = [], h = [], l = [], c = [], v = [], d = []; let key = null;
+  for (let i = 0; i < B.c.length; i++) {
+    const di = B.d[i]; if (!di) continue;
+    const k = mode === 'W' ? weekKey(di) : di.slice(0, 7);
+    if (k !== key) { key = k; o.push(B.o[i]); h.push(B.h[i]); l.push(B.l[i]); c.push(B.c[i]); v.push(B.v[i] || 0); d.push(di); continue; }
+    const j = c.length - 1; if (B.h[i] > h[j]) h[j] = B.h[i]; if (B.l[i] < l[j]) l[j] = B.l[i]; c[j] = B.c[i]; v[j] += B.v[i] || 0; d[j] = di;
+  }
+  return {o, h, l, c, v, d};
+}
+function mtfStates(S){ if (!S || S.c.length < 31) return null; try { const r = techSignals(Object.assign({i:S.c.length - 1}, S)); return r ? r.I : null; } catch (e) { return null; } }
+function mtfData(sym){
+  const LS = chartSeries(sym);
+  let D = LS && LS !== 'wait' && LS !== 'fail' ? LS : null, part = false;
+  if (!D && live.bars[sym]) { D = techSeries(sym); part = true; }
+  if (!D) return LS === 'fail' ? 'fail' : 'wait';
+  const n = D.c.length, sig = [sym, n, D.c[n - 1], D.v[n - 1], D.h[n - 1], D.l[n - 1], D.d[n - 1]].join('|');
+  const M = live.mtf || (live.mtf = new Map()), old = M.get(sym);
+  if (old && old.sig === sig) return old;
+  const raw = {o:D.o.slice(0, n), h:D.h.slice(0, n), l:D.l.slice(0, n), c:D.c.slice(0, n), v:D.v.slice(0, n), d:D.d.slice(0, n)};
+  const Ds = buildStatic(raw, n), wk = resampleBars(raw, 'W'), mo = resampleBars(raw, 'M');
+  const Ws = buildStatic(wk, wk.c.length), Ms = buildStatic(mo, mo.c.length), bb = bollArr(raw.c, 20, 2);
+  const R = {sig, part, D:Ds, W:Ws, M:Ms, e6:emaArr(raw.c, 6), e10:emaArr(raw.c, 10), ma200:rollMA(raw.c, 200), bbU:bb.up, bbL:bb.dn, mv5:rollMA(raw.v, 5),
+             sD:mtfStates(Ds), sW:mtfStates(Ws), sM:mtfStates(Ms)};
+  M.set(sym, R); while (M.size > 6) M.delete(M.keys().next().value);
+  return R;
+}
+const MTF_C = {tk:'#3b82f6', kj:'#ef4444', kn:'#facc15', kn2:'#fb923c', cs:'#22c55e', up:'#00b06f', dn:'#f23645', e6:'#22c55e', e10:'#facc15', ma50:'#f4a28c', ma200:'#e5e7eb', bb:'#6b7280'};
+function mtfFmtVol(v){ return fmtVol(v); }
+function drawMTF(){
+  const cv = $('#simCanvas'), box = $('#chartBody'), W = box.clientWidth, H = box.clientHeight, dpr = window.devicePixelRatio || 1;
+  if (!W || !H) return;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#0d1119'; g.fillRect(0, 0, W, H); state._geo = null; state._mtf = [];
+  const sym = state.chartSymbol;
+  const msg = t => { g.textAlign = 'center'; g.font = '12px Inter, Arial, sans-serif'; g.fillStyle = '#9ca3af'; g.fillText(t, W / 2, H / 2); };
+  if (sym.startsWith('#')) return msg('Đa khung chỉ áp dụng cho cổ phiếu / chỉ số có nến ngày.');
+  if (!live.on) return msg('Đa khung cần dữ liệu Live (chọn HOSE · Live).');
+  const R = mtfData(sym);
+  if (R === 'wait') return msg('Đang tải toàn bộ lịch sử giá ' + sym + '…');
+  if (R === 'fail' || !R) return msg('Không tải được lịch sử giá ' + sym + ' từ VPS/VNDirect.');
+  const narrow = W < 700, gp = 3;
+  const rc = narrow ? [0, 1, 2, 3].map(i => ({x:0, y:i * (H / 4), w:W, h:H / 4 - gp}))
+    : [{x:0, y:0, w:W / 2 - gp / 2, h:H / 2 - gp / 2}, {x:W / 2 + gp / 2, y:0, w:W / 2 - gp / 2, h:H / 2 - gp / 2},
+       {x:0, y:H / 2 + gp / 2, w:W / 2 - gp / 2, h:H / 2 - gp / 2}, {x:W / 2 + gp / 2, y:H / 2 + gp / 2, w:W / 2 - gp / 2, h:H / 2 - gp / 2}];
+  g.fillStyle = '#2a303b'; if (narrow) [1, 2, 3].forEach(i => g.fillRect(0, i * H / 4 - gp, W, gp)); else { g.fillRect(W / 2 - gp / 2, 0, gp, H); g.fillRect(0, H / 2 - gp / 2, W, gp); }
+  mtfVSA(g, rc[0], R, sym, narrow);
+  mtfIchi(g, rc[1], R.W, R.sW, sym, 'Tuần', narrow, false);
+  mtfIchi(g, rc[2], R.D, R.sD, sym, 'Ngày', narrow, false);
+  mtfIchi(g, rc[3], R.M, R.sM, sym, 'Tháng', narrow, true);
+  if (R.part) { g.fillStyle = '#f5a623'; g.font = '10px Inter, Arial, sans-serif'; g.textAlign = 'right'; g.fillText('đang tải lịch sử dài — tạm dùng 300 phiên', W - 6, H - 4); }
+  mtfHover(g);
+}
+/* Khung giá dùng chung: trả về toạ độ để vẽ nến/đường */
+function mtfFrame(g, P, S, nWant, fut, hdrH, volFrac, stripH){
+  const padR = 50, padL = 4, axisH = 12;
+  const n = S.c.length, N = Math.max(10, Math.min(n, Math.round(nWant * (state.mtfZ || 1))));
+  const end = n, s0 = end - N, slots = N + fut;
+  const plotX = P.x + padL, plotW = P.w - padL - padR, top = P.y + hdrH, bottom = P.y + P.h - axisH - stripH;
+  const volH = Math.round((bottom - top) * volFrac), priceB = bottom - volH - (volH ? 3 : 0);
+  const cw = plotW / slots;
+  return {padR, plotX, plotW, top, bottom, volH, priceB, cw, s0, end, n, N, slots, x:k => plotX + (k - s0) * cw + cw / 2, axisY:P.y + P.h - stripH - 1};
+}
+function mtfScale(F, vals){
+  let hi = -Infinity, lo = Infinity; vals.forEach(v => { if (v !== null && v !== undefined && isFinite(v)) { if (v > hi) hi = v; if (v < lo) lo = v; } });
+  if (!isFinite(hi)) { hi = 1; lo = 0; }
+  const pad = (hi - lo) * 0.04 || hi * 0.02 || 1; hi += pad; lo -= pad;
+  F.hi = hi; F.lo = lo; F.y = v => F.top + (hi - v) / (hi - lo) * (F.priceB - F.top);
+}
+function mtfAxis(g, P, F, S, tf){
+  g.font = '10px JetBrains Mono, monospace'; g.textAlign = 'left'; g.fillStyle = '#6b7280'; g.strokeStyle = '#1b212c'; g.lineWidth = 1;
+  const span = F.hi - F.lo, step = Math.pow(10, Math.floor(Math.log10(span / 4))), st = [1, 2, 2.5, 5, 10].map(m => m * step).find(s => span / s <= 5) || step * 10;
+  for (let v = Math.ceil(F.lo / st) * st; v <= F.hi; v += st) { const yy = Math.round(F.y(v)) + 0.5; g.beginPath(); g.moveTo(F.plotX, yy); g.lineTo(F.plotX + F.plotW, yy); g.stroke(); g.fillText(v >= 100 ? v.toFixed(0) : v.toFixed(v >= 10 ? 1 : 2), F.plotX + F.plotW + 4, yy + 3); }
+  g.textAlign = 'center'; let prev = '';
+  for (let k = F.s0; k < F.end; k++) {
+    const d = S.d[k]; if (!d) continue;
+    const key = tf === 'Tháng' ? d.slice(0, 4) : d.slice(0, 7); if (key === prev) continue;
+    const first = !prev; prev = key; if (first) continue;
+    const mo = +d.slice(5, 7); if (tf === 'Tuần' && (mo - 1) % 3) continue;
+    const xx = Math.round(F.x(k) - F.cw / 2) + 0.5;
+    g.strokeStyle = '#161b25'; g.beginPath(); g.moveTo(xx, F.top); g.lineTo(xx, F.bottom); g.stroke();
+    g.fillStyle = mo === 1 || tf === 'Tháng' ? '#9ca3af' : '#6b7280';
+    g.fillText(tf === 'Tháng' || mo === 1 ? d.slice(0, 4) : 'Th' + mo, xx, F.axisY - 1);
+  }
+}
+function mtfCandles(g, F, S){
+  const bw = Math.max(1, F.cw * 0.64);
+  for (let k = F.s0; k < F.end; k++) {
+    const col = S.c[k] >= S.o[k] ? MTF_C.up : MTF_C.dn, x = F.x(k); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(Math.round(x) + 0.5, F.y(S.h[k])); g.lineTo(Math.round(x) + 0.5, F.y(S.l[k])); g.stroke();
+    if (F.cw >= 2.2) g.fillRect(x - bw / 2, F.y(Math.max(S.o[k], S.c[k])), bw, Math.max(1, Math.abs(F.y(S.o[k]) - F.y(S.c[k]))));
+  }
+}
+function mtfLine(g, F, A, col, w, off = 0, dash){
+  g.strokeStyle = col; g.lineWidth = w; if (dash) g.setLineDash(dash); g.beginPath(); let st = false;
+  for (let k = F.s0; k < F.end + (off < 0 ? -off : 0); k++) { const v = A[k + off]; if (v === null || v === undefined || !isFinite(v) || k + off < 0) continue; const yy = F.y(v); st ? g.lineTo(F.x(k), yy) : g.moveTo(F.x(k), yy); st = true; }
+  g.stroke(); g.setLineDash([]);
+}
+function mtfVol(g, F, S, ma){
+  if (!F.volH) return;
+  let mx = 0; for (let k = F.s0; k < F.end; k++) if (S.v[k] > mx) mx = S.v[k]; mx = mx || 1;
+  const b0 = F.bottom, bw = Math.max(1, F.cw * 0.64);
+  g.globalAlpha = 0.6;
+  for (let k = F.s0; k < F.end; k++) { g.fillStyle = S.c[k] >= (k ? S.c[k - 1] : S.o[k]) ? MTF_C.up : MTF_C.dn; const vh = S.v[k] / mx * (F.volH - 2); g.fillRect(F.x(k) - bw / 2, b0 - vh, bw, vh); }
+  g.globalAlpha = 1;
+  (ma || []).forEach(([A, col, dash]) => { g.strokeStyle = col; g.lineWidth = 1.2; g.setLineDash(dash || []); g.beginPath(); let st = false; for (let k = F.s0; k < F.end; k++) { const v = A[k]; if (!isNum(v)) continue; const yy = b0 - v / mx * (F.volH - 2); st ? g.lineTo(F.x(k), yy) : g.moveTo(F.x(k), yy); st = true; } g.stroke(); g.setLineDash([]); });
+}
+function mtfTags(g, F, items){
+  const used = []; g.font = 'bold 9.5px JetBrains Mono, monospace'; g.textAlign = 'left';
+  items.forEach(([v, col, txtCol]) => {
+    if (!isNum(v) || v < F.lo || v > F.hi) return;
+    let yy = F.y(v); while (used.some(u => Math.abs(u - yy) < 11)) yy += 11; used.push(yy);
+    g.fillStyle = col; g.fillRect(F.plotX + F.plotW + 1, yy - 6, F.padR - 2, 12); g.fillStyle = txtCol || '#000'; g.fillText(v >= 100 ? v.toFixed(1) : v.toFixed(2), F.plotX + F.plotW + 3, yy + 3.5);
+  });
+}
+function mtfHead(g, P, lines){
+  g.textAlign = 'left'; let y = P.y + 11;
+  lines.forEach(parts => {
+    let fs = 10.5; const wOf = f => parts.reduce((a, [t, , b]) => { g.font = (b ? 'bold ' : '') + f + 'px Inter, Arial, sans-serif'; return a + g.measureText(t).width; }, 0);
+    while (fs > 8.5 && wOf(fs) > P.w - 10) fs -= 0.5;                               // co chữ cho vừa khung hẹp
+    const xMax = P.x + P.w - 6; let x = P.x + 5;
+    for (const [t, col, bold] of parts) {                                            // vẫn tràn → cắt đuôi bằng "…"
+      g.font = (bold ? 'bold ' : '') + fs + 'px Inter, Arial, sans-serif'; g.fillStyle = col || '#e5e7eb';
+      let u = t; if (x + g.measureText(u).width > xMax) { while (u.length > 1 && x + g.measureText(u + '…').width > xMax) u = u.slice(0, -1); g.fillText(u.trimEnd() + '…', x, y); break; }
+      g.fillText(u, x, y); x += g.measureText(u).width;
+    }
+    y += 13;
+  });
+}
+const mtfPct = (a, b) => isNum(a) && isNum(b) && b ? ((a / b - 1) * 100 >= 0 ? '+' : '') + ((a / b - 1) * 100).toFixed(1) + '%' : '—';
+function mtfVSA(g, P, R, sym, narrow){
+  const S = R.D, n = S.c.length, i = n - 1;
+  g.save(); g.beginPath(); g.rect(P.x, P.y, P.w, P.h); g.clip();
+  const hdrH = narrow ? 16 : 30, F = mtfFrame(g, P, S, Math.floor((P.w - 54) / 5.5), 0, hdrH, 0.24, 0);
+  mtfScale(F, (() => { const a = []; for (let k = F.s0; k < F.end; k++) a.push(S.h[k], S.l[k], R.e6[k], R.e10[k], S.ma50[k], R.bbU[k], R.bbL[k]); return a; })());
+  mtfAxis(g, P, F, S, 'Ngày');
+  /* Volume profile (theo giá) — trái khung */
+  const NB = 28, bins = new Array(NB).fill(0), bh = (F.hi - F.lo) / NB;
+  for (let k = F.s0; k < F.end; k++) { const a = Math.max(0, Math.floor((S.l[k] - F.lo) / bh)), b = Math.min(NB - 1, Math.floor((S.h[k] - F.lo) / bh)), m = b - a + 1; for (let j = a; j <= b; j++) bins[j] += (S.v[k] || 0) / m; }
+  const bmx = Math.max(...bins) || 1, poc = bins.indexOf(bmx);
+  for (let j = 0; j < NB; j++) { const y1 = F.y(F.lo + (j + 1) * bh), y0 = F.y(F.lo + j * bh), wv = bins[j] / bmx * F.plotW * 0.2; g.fillStyle = j === poc ? 'rgba(251,146,60,.75)' : 'rgba(245,158,11,.38)'; g.fillRect(F.plotX, y1 + 0.5, wv, Math.max(1, y0 - y1 - 1)); }
+  mtfLine(g, F, R.bbU, MTF_C.bb, 1); mtfLine(g, F, R.bbL, MTF_C.bb, 1);
+  mtfLine(g, F, R.ma200, MTF_C.ma200, 1.6); mtfLine(g, F, S.ma50, MTF_C.ma50, 1.6); mtfLine(g, F, R.e10, MTF_C.e10, 1.3); mtfLine(g, F, R.e6, MTF_C.e6, 1.3);
+  mtfCandles(g, F, S);
+  /* Mũi tên VSA (bảng Bar nhanh): ▲ SOS / Stopping Volume · ▼ SOW / BCLX / rục đầu */
+  for (let k = Math.max(F.s0, 20); k < F.end; k++) {
+    const spr = S.h[k] - S.l[k], rv = S.mav20[k] > 0 ? S.v[k] / S.mav20[k] : null, rs = S.spra[k] > 0 ? spr / S.spra[k] : null;
+    const cp = spr > 0 ? 100 * (S.c[k] - S.l[k]) / spr : 50, uw = spr > 0 ? 100 * (S.h[k] - Math.max(S.c[k], S.o[k])) / spr : 0;
+    const b = vsaBar(S.c[k] > S.c[k - 1], rv, rs, cp, uw); if (!b || !b.s || b.k === 'NS') continue;
+    const x = F.x(k), up = b.s > 0, yy = up ? F.y(S.l[k]) + 4 : F.y(S.h[k]) - 4, sz = Math.max(3, Math.min(5, F.cw * 0.7));
+    g.fillStyle = up ? '#3b82f6' : '#ef4444'; g.beginPath();
+    if (up) { g.moveTo(x, yy); g.lineTo(x - sz, yy + sz * 1.6); g.lineTo(x + sz, yy + sz * 1.6); } else { g.moveTo(x, yy); g.lineTo(x - sz, yy - sz * 1.6); g.lineTo(x + sz, yy - sz * 1.6); }
+    g.closePath(); g.fill();
+  }
+  mtfVol(g, F, S, [[S.mav20, '#e879f9', [4, 3]], [R.mv5, '#facc15', [2, 2]]]);
+  mtfTags(g, F, [[S.c[i], S.c[i] >= S.c[i - 1] ? '#22c55e' : '#f23645'], [R.e6[i], MTF_C.e6], [R.e10[i], MTF_C.e10], [S.ma50[i], MTF_C.ma50], [R.ma200[i], MTF_C.ma200]]);
+  const chg = i ? (S.c[i] / S.c[i - 1] - 1) * 100 : 0, f = v => isNum(v) ? fmtP(v) : '—';
+  const L1 = [[sym + ' · Ngày · VSA  ', '#fff', true], [ddmmyy(S.d[i]) + '  ', '#9ca3af'], ['O ' + f(S.o[i]) + ' H ' + f(S.h[i]) + ' L ' + f(S.l[i]) + ' C ' + f(S.c[i]) + ' ', '#e5e7eb'], [(chg >= 0 ? '+' : '') + chg.toFixed(1) + '%', chg >= 0 ? '#3ff0a6' : '#ff7b86']];
+  const L2 = [['EMA6 ' + f(R.e6[i]) + '  ', MTF_C.e6], ['EMA10 ' + f(R.e10[i]) + '  ', MTF_C.e10], ['MA50 ' + f(S.ma50[i]) + '  ', MTF_C.ma50], ['MA200 ' + f(R.ma200[i]) + '  ', MTF_C.ma200], [(P.w < 640 ? 'KL ' : 'BB20 · KL ') + fmtVol(S.v[i]) + (P.w < 520 ? ' · V20 ' : ' · MA V20 ') + fmtVol(S.mav20[i]) + (P.w < 520 ? ' · V5 ' : ' · MA V5 ') + fmtVol(R.mv5[i]), '#9ca3af']];
+  mtfHead(g, P, narrow ? [L1] : [L1, L2]);
+  state._mtf.push({P, F, S, tf:'Ngày'});
+  g.restore();
+}
+function mtfIchi(g, P, S, I, sym, tf, narrow, monthly){
+  g.save(); g.beginPath(); g.rect(P.x, P.y, P.w, P.h); g.clip();
+  const n = S.c.length, i = n - 1;
+  if (n < 30) { g.fillStyle = '#9ca3af'; g.font = '11px Inter, Arial, sans-serif'; g.textAlign = 'center'; g.fillText(sym + ' · ' + tf + ': chưa đủ nến (' + n + ')', P.x + P.w / 2, P.y + P.h / 2); g.restore(); return; }
+  const hdrH = narrow ? 16 : 43, fut = 26;
+  const F = mtfFrame(g, P, S, Math.floor((P.w - 54) / 5) - fut, fut, hdrH, 0.13, 5);
+  const cl = p => { const q = p - 26; return q >= 0 && q < n && S.sa[q] !== null && S.sb[q] !== null ? [S.sa[q], S.sb[q]] : null; };
+  mtfScale(F, (() => { const a = []; for (let k = F.s0; k < F.end; k++) a.push(S.h[k], S.l[k], S.tk[k], S.kj[k], S.kn[k], S.kn2[k]); for (let p = F.s0; p < F.end + fut; p++) { const z = cl(p); if (z) a.push(z[0], z[1]); } return a; })());
+  mtfAxis(g, P, F, S, tf);
+  const xf = p => F.plotX + (p - F.s0) * F.cw + F.cw / 2;
+  for (let p = F.s0; p < F.end + fut - 1; p++) {                                  // Mây (dịch 26 phiên)
+    const a = cl(p), b = cl(p + 1); if (!a || !b) continue;
+    g.fillStyle = a[0] >= a[1] ? 'rgba(0,176,111,.42)' : 'rgba(245,140,60,.45)';
+    g.beginPath(); g.moveTo(xf(p), F.y(a[0])); g.lineTo(xf(p + 1), F.y(b[0])); g.lineTo(xf(p + 1), F.y(b[1])); g.lineTo(xf(p), F.y(a[1])); g.closePath(); g.fill();
+  }
+  for (let k = F.s0; k < F.end - 1; k++) {                                        // Ao Sen (giữa 2 kiếm)
+    const t0 = S.tk[k], j0 = S.kj[k], t1 = S.tk[k + 1], j1 = S.kj[k + 1]; if (![t0, j0, t1, j1].every(isNum)) continue;
+    g.fillStyle = t0 >= j0 ? 'rgba(170,240,170,.55)' : 'rgba(255,200,210,.55)';
+    g.beginPath(); g.moveTo(xf(k), F.y(t0)); g.lineTo(xf(k + 1), F.y(t1)); g.lineTo(xf(k + 1), F.y(j1)); g.lineTo(xf(k), F.y(j0)); g.closePath(); g.fill();
+  }
+  mtfLine(g, F, S.kn2, MTF_C.kn2, 2); mtfLine(g, F, S.kn, MTF_C.kn, 2);
+  mtfCandles(g, F, S);
+  mtfLine(g, F, S.kj, MTF_C.kj, 1.4); mtfLine(g, F, S.tk, MTF_C.tk, 1.4);
+  g.strokeStyle = MTF_C.cs; g.lineWidth = 1.3; g.beginPath(); let st = false;    // Chikou = giá đóng cửa lùi 26 phiên
+  for (let k = F.s0; k < F.end; k++) { const v = S.c[k + 26]; if (!isNum(v)) continue; st ? g.lineTo(F.x(k), F.y(v)) : g.moveTo(F.x(k), F.y(v)); st = true; }
+  g.stroke();
+  mtfVol(g, F, S, null);
+  for (let k = F.s0; k < F.end; k++) {                                            // Dải trạng thái B1 mỗi nến
+    const a = cl(k), t = S.tk[k], j = S.kj[k]; let col = '#3a4250';
+    if (a && isNum(t) && isNum(j)) { const ct = Math.max(a[0], a[1]), cb = Math.min(a[0], a[1]); col = Math.min(t, j) > ct ? '#16a34a' : Math.max(t, j) < cb ? '#dc2626' : '#eab308'; }
+    g.fillStyle = col; g.fillRect(F.x(k) - F.cw / 2, F.bottom + 13, Math.ceil(F.cw), 4);
+  }
+  mtfTags(g, F, [[S.c[i], S.c[i] >= S.c[i - 1] ? '#22c55e' : '#f23645'], [S.tk[i], MTF_C.tk, '#fff'], [S.kj[i], MTF_C.kj, '#fff'], [S.kn[i], MTF_C.kn], [S.kn2[i], MTF_C.kn2]]);
+  const f = v => isNum(v) ? fmtP(v) : '—', chg = i ? (S.c[i] / S.c[i - 1] - 1) * 100 : 0;
+  const L1 = [[sym + ' · ' + tf + ' · Ichimoku  ', '#fff', true], [ddmmyy(S.d[i]) + '  ', '#9ca3af'], ['O ' + f(S.o[i]) + ' H ' + f(S.h[i]) + ' L ' + f(S.l[i]) + ' C ' + f(S.c[i]) + ' ', '#e5e7eb'], [(chg >= 0 ? '+' : '') + chg.toFixed(1) + '%', chg >= 0 ? '#3ff0a6' : '#ff7b86'], ['  KL ' + fmtVol(S.v[i]), '#9ca3af']];
+  const L2 = monthly
+    ? [['Tenkan ' + f(S.tk[i]) + '  ', MTF_C.tk], ['Kijun ' + f(S.kj[i]) + '  ', MTF_C.kj], ['D1 ' + f(S.kn[i]) + '  ', MTF_C.kn], ['D2 ' + f(S.kn2[i]) + '  ', MTF_C.kn2], ['| Khoảng cách D1: ', '#9ca3af'], [mtfPct(S.c[i], S.kn[i]), MTF_C.kn], ['  Kijun: ', '#9ca3af'], [mtfPct(S.c[i], S.kj[i]), MTF_C.kj]]
+    : [['TK9 ' + f(S.tk[i]) + '  ', MTF_C.tk], ['KJ17 ' + f(S.kj[i]) + '  ', MTF_C.kj], ['DG65 ' + f(S.kn[i]) + '  ', MTF_C.kn], ['DG129 ' + f(S.kn2[i]) + '  ', MTF_C.kn2], ['| C-DG65: ', '#9ca3af'], [mtfPct(S.c[i], S.kn[i]), '#e5e7eb'], ['  C-KJ: ', '#9ca3af'], [mtfPct(S.c[i], S.kj[i]), '#e5e7eb']];
+  let L3 = [['B1–B3: chưa đủ nến', '#9ca3af']];
+  if (I && I.trend) {
+    const T = {up:['TĂNG (Ao Sen trên Mây)', '#3ff0a6'], down:['GIẢM (Ao Sen dưới Mây)', '#ff7b86'], side:['TÍCH LŨY (lồng Mây)', '#facc15']}[I.trend];
+    const B2 = I.state === 'hbUp' ? [(I.chap ? 'CHẬP/' : '') + 'hợp bích LÊN', '#3ff0a6'] : I.state === 'hbDn' ? ['hợp bích XUỐNG', '#ff7b86'] : [I.chap ? 'CHẬP (sát nhau)' : 'đan xen', '#facc15'];
+    const B3 = I.csClean ? ['THOÁNG LÊN', '#3ff0a6'] : I.cs === 1 ? ['trên mây, vướng đỉnh 26p', '#facc15'] : I.csInCloud ? ['KẸT trong Mây', '#ff7b86'] : I.cs === -1 ? ['DƯỚI Mây', '#ff7b86'] : ['kẹt giữa Ao Sen & Mây', '#facc15'];
+    L3 = P.w < 640 ? [['B1 ', '#93c5fd'], [T[0].split(' (')[0], T[1]], [' · B2 ', '#93c5fd'], B2, [' · B3 ', '#93c5fd'], B3]
+      : [['B1 Xu hướng: ', '#93c5fd'], T, [' | B2 2 kiếm: ', '#93c5fd'], B2, [' | B3 Đường trẻ: ', '#93c5fd'], B3];
+  }
+  mtfHead(g, P, narrow ? [L1.slice(0, 2).concat([[' ' + (I && I.trend ? {up:'▲ TĂNG', down:'▼ GIẢM', side:'■ TÍCH LŨY'}[I.trend] : ''), I && I.trend === 'up' ? '#3ff0a6' : I && I.trend === 'down' ? '#ff7b86' : '#facc15', true]])] : [L1, L2, L3]);
+  state._mtf.push({P, F, S, tf});
+  g.restore();
+}
+const ddmmyy = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
+function mtfHover(g){
+  const hx = state.simHx, hy = state.simHy; if (!isNum(hx) || !isNum(hy)) return;
+  const Q = (state._mtf || []).find(q => hx >= q.F.plotX && hx <= q.F.plotX + q.F.plotW && hy >= q.P.y && hy <= q.P.y + q.P.h); if (!Q) return;
+  const {F, S, P} = Q, k = F.s0 + Math.floor((hx - F.plotX) / F.cw); if (k < F.s0 || k >= F.end) return;
+  const xx = Math.round(F.x(k)) + 0.5;
+  g.save(); g.beginPath(); g.rect(P.x, P.y, P.w, P.h); g.clip();
+  g.strokeStyle = 'rgba(255,255,255,.3)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(xx, F.top); g.lineTo(xx, F.bottom); g.stroke(); g.setLineDash([]);
+  const pc = k > 0 ? (S.c[k] / S.c[k - 1] - 1) * 100 : null;
+  const t = `${ddmmyy(S.d[k])}  O ${fmtP(S.o[k])} H ${fmtP(S.h[k])} L ${fmtP(S.l[k])} C ${fmtP(S.c[k])}${isNum(pc) ? ' ' + (pc > 0 ? '+' : '') + pc.toFixed(1) + '%' : ''}  V ${fmtVol(S.v[k])}`;
+  g.font = '10px JetBrains Mono, monospace'; const tw = g.measureText(t).width + 10;
+  g.fillStyle = 'rgba(22,26,36,.94)'; g.fillRect(F.plotX + 2, F.top + 2, tw, 16); g.fillStyle = isNum(pc) ? (pc > 0 ? '#3ff0a6' : pc < 0 ? '#ff7b86' : '#f5a623') : '#e5e7eb'; g.textAlign = 'left'; g.fillText(t, F.plotX + 7, F.top + 13);
+  g.restore();
 }
 
 /* =========================================================================
@@ -3069,7 +3321,7 @@ function toast(msg, type = ''){
 function setSide(pct){
   state.side = clamp(pct, 25, 65);
   document.documentElement.style.setProperty('--side', state.side + '%');
-  if (state.chartMode === 'sim') drawSim();
+  if (isCanvasMode()) drawSim();
 }
 function bindEvents(){
   // Bảng
@@ -3210,7 +3462,7 @@ function bindEvents(){
   $('#vinIn').addEventListener('change', applyVin);
   $('#vinIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyVin(); } });
   $('#chart-frame').addEventListener('load', () => { clearTimeout(chartLoadTimer); $('#chartLoading').classList.add('off'); });
-  document.addEventListener('fullscreenchange', () => { if (state.chartMode === 'sim') setTimeout(drawSim, 60); });
+  document.addEventListener('fullscreenchange', () => { if (isCanvasMode()) setTimeout(drawSim, 60); });
 
   // Import / Export / Menu
   $('#btnImport').addEventListener('click', () => $('#fileInput').click());
@@ -3258,7 +3510,7 @@ function bindEvents(){
   const end = () => { if (!drag) return; drag = false; gut.classList.remove('drag'); document.body.classList.remove('resizing'); saveUI(); };
   gut.addEventListener('pointerup', end); gut.addEventListener('pointercancel', end);
   gut.addEventListener('dblclick', () => { setSide(40); saveUI(); });
-  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (state.chartMode === 'sim') drawSim(); }, 120); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (isCanvasMode()) drawSim(); }, 120); });
 }
 
 
@@ -3278,7 +3530,7 @@ function setMV(v){
   if (v === 'mkt' && state.selected) { state.selected = null; document.querySelectorAll('#tbody tr.sel').forEach(r => r.classList.remove('sel')); renderPanel(); renderIndices(); mvLabels(); }
   if (v === 'ana' && !state.selected) toast('Chưa chọn mã — đang hiện tổng quan thị trường. Chạm một mã ở Radar để phân tích.');
   fitHeader();
-  if (v === 'chart' && state.chartMode === 'sim') setTimeout(drawSim, 30);
+  if (v === 'chart' && isCanvasMode()) setTimeout(drawSim, 30);
   if (v === 'tape') { tapeRender(); setTimeout(() => tapeTick(), 30); }
   const pane = v === 'ana' || v === 'mkt' ? $('#panel') : null; if (pane) pane.scrollTop = 0;
 }
@@ -3337,7 +3589,7 @@ function bindMobile(){
   $('#mnav').addEventListener('click', e => { const b = e.target.closest('[data-mv]'); if (b) setMV(b.dataset.mv); });
   $('#btnSync').addEventListener('click', () => { $('#menuPop').hidden = true; openSync(); });
   window.addEventListener('resize', fitHeader);
-  if (mq.addEventListener) mq.addEventListener('change', () => { fitHeader(); setPage(state.page, 'none'); if (state.chartMode === 'sim') setTimeout(drawSim, 50); });
+  if (mq.addEventListener) mq.addEventListener('change', () => { fitHeader(); setPage(state.page, 'none'); if (isCanvasMode()) setTimeout(drawSim, 50); });
   setMV('radar');
 }
 /* =========================================================================
@@ -3755,7 +4007,7 @@ function setPage(p, how = 'push'){
   tapeRender();
   const h = pageHash(p);
   if (how !== 'none' && location.hash !== h) { try { history[how === 'push' ? 'pushState' : 'replaceState'](null, '', h); } catch (e) {} }
-  setTimeout(() => { if (state.chartMode === 'sim') drawSim(); if (TAPE.page) tapeDrawChart(); }, 40);
+  setTimeout(() => { if (isCanvasMode()) drawSim(); if (TAPE.page) tapeDrawChart(); }, 40);
 }
 function stockStep(d){
   const list = state.view.map(x => x.ticker); if (!list.length) return;
