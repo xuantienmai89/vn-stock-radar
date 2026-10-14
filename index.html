@@ -355,6 +355,7 @@ body:not(.filt-open) #chips,body:not(.filt-open) #advBox{display:none}
 /* ================= BIỂU ĐỒ NỘI BỘ: khung thời gian ================= */
 .tabs.rgsel{margin-left:0}
 .tabs.rgsel button{padding:3px 6px;font-size:10.5px}
+.tabs.tfsel{margin-right:2px}.tabs.tfsel button{min-width:26px;font-weight:700;font-size:11px}
 #simCanvas{cursor:crosshair;touch-action:none}
 
 /* ================= KHỚP LỆNH (khung cạnh biểu đồ) ================= */
@@ -656,7 +657,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.2">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.3">By Mai Xuân Tiến</div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -782,9 +783,10 @@ table.compact .x-full{display:none}
         <div class="tabs" id="srcTabs">
           <button data-src="vs" class="on" title="Biểu đồ kỹ thuật đầy đủ (TradingView engine) – đổi mã tự động">Vietstock<span class="x"> Chart</span></button>
           <button data-src="fa" title="Trang mã FireAnt: chart + chỉ số cơ bản + tin tức/thảo luận – đổi mã tự động">FireAnt<span class="x"> Hồ sơ</span></button>
-          <button data-src="sim" title="Biểu đồ nội bộ: nến ngày thật từ VPS khi Live (toàn bộ lịch sử, lăn chuột để phóng to/thu nhỏ, kéo để xem quá khứ), mô phỏng khi Demo">Nội bộ</button>
+          <button data-src="sim" title="Biểu đồ nội bộ: nến thật từ VPS khi Live — chuyển khung D/W/M (D, W: 2 năm gần nhất · M: toàn bộ lịch sử), lăn chuột để phóng to/thu nhỏ, kéo để xem quá khứ; mô phỏng khi Demo">Nội bộ</button>
           <button data-src="mtf" title="Đa khung kiểu AmiBroker: Ngày VSA · Tuần Ichimoku · Ngày Ichimoku · Tháng Ichimoku — cùng lúc 4 khung">Đa khung</button>
         </div>
+        <div class="tabs rgsel tfsel" id="simTf" hidden><button data-tf="D" title="Nến ngày · tối đa 2 năm gần nhất">D</button><button data-tf="W" title="Nến tuần (gộp từ nến ngày) · tối đa 2 năm gần nhất">W</button><button data-tf="M" title="Nến tháng (gộp từ nến ngày) · toàn bộ lịch sử">M</button></div>
         <div class="tabs rgsel" id="simRange" hidden></div>
         <button class="btn sm" id="btnReload" title="Tải lại biểu đồ">↻</button>
         <button class="btn sm" id="btnMax" title="Phóng to biểu đồ trong dashboard (phím F)">⤢ Phóng to</button>
@@ -1164,6 +1166,11 @@ const ruleLabel = r => `${RULE_FIELDS[r.f][0]} ${OPS[r.op][1]} ${r.v}`;
    4. STATE
    ========================================================================= */
 const ui = ls.get(STORE.ui, {});
+function initSimWins(ui){
+  const old = isNum(ui.simWin) && ui.simWin > 0 ? ui.simWin : 250, W = {D:Math.min(old, 500), W:104, M:1e6, S:old}, U = ui.simWins;
+  if (U && typeof U === 'object') ['D', 'W', 'M', 'S'].forEach(k => { if (isNum(U[k]) && U[k] > 0) W[k] = U[k]; });
+  return W;
+}
 const state = {
   data:[], source:'Demo', isDemo:true, view:[],
   selected:null, chartSymbol:'VNINDEX', activeIndex:'VNINDEX', chartMode: !(ui.v >= 32) ? 'mtf' : ['vs','fa','sim','mtf'].includes(ui.chartMode) ? ui.chartMode : 'vs', mtfZ:1, simHy:null,
@@ -1177,13 +1184,18 @@ const state = {
   vin: Array.isArray(ui.vin) && ui.vin.length ? ui.vin : VIN_DEFAULT.slice(), ichiOn: ui.ichiOn !== false, chipCol: ui.chipCol || {},
   search:'',
   side: isNum(ui.side) ? ui.side : 40,
-  simWin: isNum(ui.simWin) && ui.simWin > 0 ? ui.simWin : 250, simOff:0, simHx:null,
+  simTf: ['D', 'W', 'M'].includes(ui.simTf) ? ui.simTf : 'D', simWins: initSimWins(ui), simOff:0, simHx:null,
   page: ['radar', 'stock', 'market'].includes(ui.page) ? ui.page : 'radar', pageSym:{radar:null, stock:null, market:null},
   recent: Array.isArray(ui.recent) ? ui.recent.filter(t => /^[A-Z0-9]{3,10}$/.test(t)).slice(0, 12) : [],
   watch: new Set(ls.get(STORE.wl, [])),
   notes: ls.get(STORE.notes, {})
 };
-const saveUI = () => ls.set(STORE.ui, {sort:state.sort, quick:[...state.quick], rules:state.rules, mode:state.mode, scope:state.scope, side:state.side, chartMode:state.chartMode, uni:state.uni, vin:state.vin, secSort:state.secSort, ichiOn:state.ichiOn, chipCol:state.chipCol, simWin:state.simWin, tapeOn:TAPE.on, tapeTab:TAPE.tab, tapeBig:TAPE.big, page:state.page, recent:state.recent, dv:state.dv, compact:state.compact, v:32});
+/* v3.3: mỗi khung (D/W/M · biểu đồ chuỗi tổng hợp S) nhớ cửa sổ xem riêng; state.simWin trỏ vào khung đang xem */
+function simKey(){ let on = false; try { on = live.on; } catch (e) {} return String(state.chartSymbol || '').startsWith('#') ? 'S' : on ? (state.simTf || 'D') : 'D'; }
+Object.defineProperty(state, 'simWin', {configurable:true, enumerable:true,
+  get(){ const v = state.simWins[simKey()]; return isNum(v) && v > 0 ? v : 250; },
+  set(v){ state.simWins[simKey()] = v; }});
+const saveUI = () => ls.set(STORE.ui, {sort:state.sort, quick:[...state.quick], rules:state.rules, mode:state.mode, scope:state.scope, side:state.side, chartMode:state.chartMode, uni:state.uni, vin:state.vin, secSort:state.secSort, ichiOn:state.ichiOn, chipCol:state.chipCol, simTf:state.simTf, simWins:state.simWins, tapeOn:TAPE.on, tapeTab:TAPE.tab, tapeBig:TAPE.big, page:state.page, recent:state.recent, dv:state.dv, compact:state.compact, v:33});
 /* Khung Khớp lệnh — khai báo sớm vì saveUI dùng tới (logic ở mục 17) */
 const BIG_OPTS = [[1e8, '100 triệu'], [3e8, '300 triệu'], [5e8, '500 triệu'], [1e9, '1 tỷ'], [2e9, '2 tỷ'], [5e9, '5 tỷ'], [1e10, '10 tỷ']];
 const TAPE = {
@@ -2409,7 +2421,7 @@ const CHART_SRC = {
         hint: 'Vietstock Chart · TradingView engine. Nút ☀ góc trên chart để chuyển nền tối (Vietstock tự ghi nhớ).'},
   fa:  {url: t => 'https://fireant.vn/ma-chung-khoan/' + encodeURIComponent(t),
         hint: 'FireAnt Hồ sơ · chart + chỉ số cơ bản thực + tin tức/thảo luận. Cuộn bên trong khung để xem thêm.'},
-  sim: {url: null, hint: 'Nội bộ · toàn bộ lịch sử ngày (VPS) · lăn chuột: phóng to/thu nhỏ · kéo: xem quá khứ · nhấp đúp: về hiện tại · 3Th…Max: khung thời gian'},
+  sim: {url: null, hint: 'Nội bộ · D/W/M: nến ngày · tuần · tháng (VPS; D, W tối đa 2 năm gần nhất · M toàn bộ lịch sử) · lăn chuột: phóng to/thu nhỏ · kéo: xem quá khứ · nhấp đúp: về hiện tại'},
   mtf: {url: null, hint: 'Đa khung · Ngày VSA · Tuần / Ngày / Tháng Ichimoku (nến tuần/tháng gộp từ nến ngày VPS) · lăn chuột: phóng to/thu nhỏ cả 4 khung · nhấp đúp: mặc định · ⤢ Phóng to để xem rộng'}
 };
 let chartLoadTimer;
@@ -2427,7 +2439,7 @@ function changeSymbol(ticker){
     state.chartSymbol = raw;
     if (state.chartMode !== 'sim') { state._restoreMode = state.chartMode; setChartMode('sim'); return; }
     const [a, b] = synthLabel(raw); $('#chartTicker').textContent = a; $('#chartName').textContent = b;
-    drawSim(); return;
+    syncTfBtns(); drawSim(); return;
   }
   if (state._restoreMode && state.chartMode === 'sim') { const m = state._restoreMode; state._restoreMode = null; state.chartSymbol = raw.toUpperCase(); setChartMode(m); return; }
   const t = raw.toUpperCase();
@@ -2435,6 +2447,7 @@ function changeSymbol(ticker){
   const o = bySym(t), ix = INDICES.find(i => i.fa === t);
   $('#chartTicker').textContent = t;
   $('#chartName').textContent = o ? o.company : ix ? ix.name : '';
+  if (state.chartMode === 'sim') syncTfBtns();
   const url = chartUrl(state.chartMode, t);
   if (!url) { drawSim(); return; }
   const fr = $('#chart-frame');
@@ -2458,7 +2471,7 @@ function setChartMode(mode){
   $('#chartHint').hidden = !CHART_SRC[mode].hint;
   $('#simRange').hidden = mode !== 'sim';
   changeSymbol(state.chartSymbol);
-  syncRangeBtns();
+  syncTfBtns();
 }
 function reloadChart(){
   const url = state.chartSymbol.startsWith('#') ? null : chartUrl(state.chartMode, state.chartSymbol);
@@ -2524,8 +2537,15 @@ function drawSim(){
       if (!B.c.length) { msg('Không tải được lịch sử giá ' + sym + ' từ VPS/VNDirect.'); return; }
       X = buildStatic(B, B.c.length);
     }
+    const tf = state.simTf || 'D';
+    let lbl = 'Nến ngày · VPS' + (X.live ? ' · nến cuối = phiên hôm nay' : '');
+    if (tf === 'W' || tf === 'M') {
+      X = tfSeries(sym, tf, X, X !== LS);
+      lbl = (tf === 'W' ? 'Nến tuần' : 'Nến tháng') + ' · gộp từ nến ngày VPS' + (X.live ? ' · nến cuối gồm phiên hôm nay' : '') + (X.part ? ' · đang tải đủ lịch sử…' : '');
+    } else X = Object.assign({}, X, {cap:TF_CAP.D, unit:'phiên'});
+    if (W < 640) lbl = lbl.split(' · ')[0];                                   // màn hẹp: nhãn ngắn
     const last = X.c[X.c.length - 1];
-    drawCandles(g, W, H, X, sym, last, o ? o.state : 'ref', 'Nến ngày · VPS' + (X.live ? ' · nến cuối = phiên hôm nay' : ''), '#00b8d9', o && o.dv && o.dv.k !== 'na' ? planLines(o) : null);
+    drawCandles(g, W, H, X, sym, last, o ? o.state : 'ref', lbl, '#00b8d9', o && o.dv && o.dv.k !== 'na' ? planLines(o) : null);
     return;
   }
   if (!o || !isNum(o.price)) { msg('Chế độ mô phỏng chỉ áp dụng cho cổ phiếu trong universe — chọn một mã ở Radar.'); return; }
@@ -2581,9 +2601,10 @@ function drawLines(g, W, H, dates, lines, title, k0){
   if (lines.length === 2) { const a = lines[0].vals[N - 1], b = lines[1].vals[N - 1]; if (isNum(a) && isNum(b)) { g.fillStyle = '#9ca3af'; g.fillText(`Chênh lệch hiện tại: ${(b - a >= 0 ? '+' : '') + (b - a).toFixed(1)} ${a > 500 ? 'điểm' : 'điểm gốc-100'}`, padL + 4, 34); } }
 }
 function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
-  const n = X.c.length;
-  const win = clamp(Math.round(state.simWin > 0 ? state.simWin : 250), Math.min(20, n), n);
-  const off = clamp(Math.round(state.simOff || 0), 0, n - win); state.simOff = off;
+  const n = X.c.length, nA = X.cap > 0 ? Math.min(n, X.cap) : n, base = n - nA, unit = X.unit || 'phiên';   // nA: số nến được xem (D/W: 2 năm)
+  if (X.cap > 0 && n >= X.cap && !(state.simWin <= nA)) state.simWin = nA;
+  const win = clamp(Math.round(state.simWin > 0 ? state.simWin : 250), Math.min(20, nA), nA);
+  const off = clamp(Math.round(state.simOff || 0), 0, nA - win); state.simOff = off;
   const end = n - off, s0 = end - win, ichi = !!(state.ichiOn && X.tk);
   const fut = ichi && off === 0 ? 26 : 0, slots = win + fut;
   const padL = 8, padR = 62, padT = 30, padB = 20, volH = Math.round(H * 0.16), priceH = H - volH - padT - padB - 4;
@@ -2599,13 +2620,14 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
   const plotW = W - padL - padR, cw = plotW / slots;
   const y = v => padT + (hi - v) / span * priceH, x = p => padL + (p - s0) * cw + cw / 2;
   let maxV = 0; for (let k = s0; k < end; k++) if (X.v[k] > maxV) maxV = X.v[k]; maxV = maxV || 1;
-  state._geo = {s0, end, n, win, padL, plotW, cw};
+  state._geo = {s0:s0 - base, end:end - base, n:nA, win, padL, plotW, cw};
   g.textAlign = 'center'; g.font = 'bold 64px Inter, Arial, sans-serif'; g.fillStyle = 'rgba(255,255,255,.035)'; g.fillText(title, W / 2, padT + priceH / 2 + 22);
   g.strokeStyle = '#1f2533'; g.lineWidth = 1; g.font = '10.5px JetBrains Mono, monospace'; g.fillStyle = '#6b7280'; g.textAlign = 'left';
   for (let k = 0; k <= 5; k++) { const v = lo + span * k / 5, yy = Math.round(y(v)) + 0.5; g.beginPath(); g.moveTo(padL, yy); g.lineTo(W - padR, yy); g.stroke(); g.fillText(v.toFixed(2), W - padR + 6, yy + 3); }
   // Trục thời gian: đầu tháng (cửa sổ ngắn) · đầu quý (≈1–2 năm) · đầu năm (dài)
-  const yearly = win > 620, quarterly = !yearly && win > 230;
-  let prev = ''; g.textAlign = 'center';
+  const spanD = X.d[s0] && X.d[end - 1] ? (Date.parse(X.d[end - 1]) - Date.parse(X.d[s0])) / 864e5 : win * 1.45;
+  const yearly = spanD > 900, quarterly = !yearly && spanD > 330;
+  let prev = '', lastLX = -1e9; g.textAlign = 'center';
   for (let k = s0; k < end; k++) {
     const d = X.d[k]; if (!d) continue;
     const key = yearly ? d.slice(0, 4) : d.slice(0, 7);
@@ -2613,6 +2635,7 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
     const first = !prev; prev = key; if (first) continue;
     const mo = +d.slice(5, 7); if (quarterly && (mo - 1) % 3) continue;
     const xx = Math.round(x(k) - cw / 2) + 0.5;
+    if (xx - lastLX < 34) continue; lastLX = xx;                               // thưa nhãn khi khung hẹp
     g.strokeStyle = mo === 1 ? '#262d3b' : '#191f2a'; g.beginPath(); g.moveTo(xx, padT); g.lineTo(xx, H - padB); g.stroke();
     g.fillStyle = mo === 1 ? '#9ca3af' : '#6b7280'; g.fillText(yearly || mo === 1 ? d.slice(0, 4) : 'Th' + mo, xx, H - 6);
   }
@@ -2663,10 +2686,10 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
   g.fillStyle = col; g.fillRect(W - padR + 2, yl - 9, padR - 4, 18); g.fillStyle = '#000'; g.font = 'bold 11px JetBrains Mono, monospace'; g.textAlign = 'left'; g.fillText(fmtP(lastPx), W - padR + 6, yl + 4);
   g.font = '11px Inter, Arial, sans-serif'; let lx = padL + 4;
   legend.forEach(([t, c2]) => { g.fillStyle = c2; g.fillText(t, lx, 14); lx += g.measureText(t).width + 12; });
-  const d0 = X.d[s0], d1 = X.d[end - 1], fd = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(2, 4) : '';
+  const d0 = X.d[s0], d1 = X.d[end - 1], fd = d => !d ? '' : unit === 'tháng' ? 'Th' + d.slice(5, 7) + '/' + d.slice(0, 4) : d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(2, 4);
   g.fillStyle = labelCol; g.fillText(label, lx + 6, 14);
   g.font = '10px Inter, Arial, sans-serif'; g.textAlign = 'right'; g.fillStyle = off ? '#f5a623' : '#6b7280';
-  g.fillText(`${off ? '◀ đang xem quá khứ · nhấp đúp để về hiện tại · ' : ''}${win} phiên${d0 ? ' · ' + fd(d0) + ' → ' + fd(d1) : ''}`, W - padR - 4, padT + priceH - 4); g.textAlign = 'left';
+  g.fillText(`${off ? '◀ đang xem quá khứ · nhấp đúp để về hiện tại · ' : ''}${win} ${unit}${d0 ? ' · ' + fd(d0) + ' → ' + fd(d1) : ''}`, W - padR - 4, padT + priceH - 4); g.textAlign = 'left';
   // Con trỏ: đọc O/H/L/C/V của nến dưới chuột
   if (isNum(state.simHx)) {
     const k = s0 + Math.floor((state.simHx - padL) / cw);
@@ -2691,6 +2714,27 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
 const LONG_DAYS = 365 * 30, LONG_TTL = 8 * 3600e3, LONG_MAX = 12;
 live.longCache = new Map(); live.ltb = new Map();
 const RANGES = [[63, '3Th', '3 tháng'], [126, '6Th', '6 tháng'], [250, '1N', '1 năm'], [500, '2N', '2 năm'], [1250, '5N', '5 năm'], [0, 'Max', 'toàn bộ lịch sử']];
+/* v3.3 · D/W/M: D và W tối đa 2 năm gần nhất (500 phiên / 104 tuần) · M không giới hạn.
+   Chỉ báo (TK/KJ/Mây/DG65/DG129) vẫn tính trên TOÀN BỘ lịch sử rồi mới cắt khung hiển thị → khớp AmiBroker. */
+const TF_RANGES = {D:[[63, '3Th', '3 tháng'], [126, '6Th', '6 tháng'], [250, '1N', '1 năm'], [500, '2N', '2 năm']],
+                   W:[[26, '6Th', '6 tháng'], [52, '1N', '1 năm'], [104, '2N', '2 năm']],
+                   M:[[24, '2N', '2 năm'], [60, '5N', '5 năm'], [120, '10N', '10 năm'], [0, 'Max', 'toàn bộ lịch sử']], S:RANGES};
+const TF_CAP = {D:500, W:104, M:0}, TF_UNIT = {D:'phiên', W:'tuần', M:'tháng'};
+function tfSeries(sym, tf, D, part){                      // gộp nến ngày (đã gồm phiên đang chạy) → tuần/tháng, có cache
+  const n = D.c.length, sig = [sym, tf, n, D.c[n - 1], D.v[n - 1], D.h[n - 1], D.l[n - 1], D.d[n - 1], part ? 1 : 0].join('|');
+  const C = live.tfc || (live.tfc = new Map()), key = sym + ':' + tf, old = C.get(key);
+  if (old && old.sig === sig) return old;
+  const S = resampleBars(D, tf), X = buildStatic(S, S.c.length);
+  Object.assign(X, {sig, i:X.c.length - 1, live:!!D.live, part:!!part, cap:TF_CAP[tf], unit:TF_UNIT[tf]});
+  C.set(key, X); while (C.size > 8) C.delete(C.keys().next().value);
+  return X;
+}
+function syncTfBtns(){
+  const k = simKey(), el = $('#simTf'), rg = $('#simRange');
+  if (el) { el.hidden = state.chartMode !== 'sim' || k === 'S' || !live.on; el.querySelectorAll('[data-tf]').forEach(b => b.classList.toggle('on', b.dataset.tf === state.simTf)); }
+  if (rg && rg.dataset.k !== k) { rg.dataset.k = k; rg.innerHTML = (TF_RANGES[k] || RANGES).map(([v, l, t]) => `<button data-rg="${v}" title="Xem ${t}">${l}</button>`).join(''); }
+  syncRangeBtns();
+}
 function chartSeries(sym){
   let L = live.longCache.get(sym);
   if (L && L.ts && Date.now() - L.ts > LONG_TTL) { live.longCache.delete(sym); L = undefined; }
@@ -2741,7 +2785,11 @@ let simRaf = 0;
 function simRedraw(){ if (!simRaf) simRaf = requestAnimationFrame(() => { simRaf = 0; drawSim(); }); }
 function bindSimNav(){
   const cv = $('#simCanvas');
-  $('#simRange').innerHTML = RANGES.map(([v, l, t]) => `<button data-rg="${v}" title="Xem ${t}">${l}</button>`).join('');
+  syncTfBtns();
+  $('#simTf').addEventListener('click', e => {
+    const b = e.target.closest('[data-tf]'); if (!b || b.dataset.tf === state.simTf) return;
+    state.simTf = b.dataset.tf; state.simOff = 0; state.simHx = null; saveUI(); syncTfBtns(); drawSim();
+  });
   $('#simRange').addEventListener('click', e => {
     const b = e.target.closest('[data-rg]'); if (!b) return;
     const v = +b.dataset.rg; state.simWin = v || 1e6; state.simOff = 0; saveUI(); drawSim(); syncRangeBtns();
