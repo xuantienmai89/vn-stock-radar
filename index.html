@@ -58,6 +58,7 @@ td.fl-dn{animation:fld 1.4s ease-out}
 .wi b{color:var(--muted);font-weight:600;white-space:nowrap}
 .wi span{font-family:var(--mono);font-size:11px}
 #btnIchi.on{background:var(--ref);border-color:var(--ref);color:#000}
+#btnBB.on{background:#818cf8;border-color:#818cf8;color:#000}
 .idx.ex{background:#17202e}
 .idx.ex .in{color:var(--floor)}
 .panel.ov{grid-template-columns:1fr 1.45fr .85fr}
@@ -657,7 +658,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.3">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.4">By Mai Xuân Tiến</div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -783,14 +784,15 @@ table.compact .x-full{display:none}
         <div class="tabs" id="srcTabs">
           <button data-src="vs" class="on" title="Biểu đồ kỹ thuật đầy đủ (TradingView engine) – đổi mã tự động">Vietstock<span class="x"> Chart</span></button>
           <button data-src="fa" title="Trang mã FireAnt: chart + chỉ số cơ bản + tin tức/thảo luận – đổi mã tự động">FireAnt<span class="x"> Hồ sơ</span></button>
-          <button data-src="sim" title="Biểu đồ nội bộ: nến thật từ VPS khi Live — chuyển khung D/W/M (D, W: 2 năm gần nhất · M: toàn bộ lịch sử), lăn chuột để phóng to/thu nhỏ, kéo để xem quá khứ; mô phỏng khi Demo">Nội bộ</button>
+          <button data-src="sim" title="Biểu đồ nội bộ: nến thật từ VPS khi Live — chuyển khung D/W/M (D: 2 năm gần nhất · W, M: toàn bộ lịch sử), lăn chuột để phóng to/thu nhỏ, kéo để xem quá khứ; mô phỏng khi Demo">Nội bộ</button>
           <button data-src="mtf" title="Đa khung kiểu AmiBroker: Ngày VSA · Tuần Ichimoku · Ngày Ichimoku · Tháng Ichimoku — cùng lúc 4 khung">Đa khung</button>
         </div>
-        <div class="tabs rgsel tfsel" id="simTf" hidden><button data-tf="D" title="Nến ngày · tối đa 2 năm gần nhất">D</button><button data-tf="W" title="Nến tuần (gộp từ nến ngày) · tối đa 2 năm gần nhất">W</button><button data-tf="M" title="Nến tháng (gộp từ nến ngày) · toàn bộ lịch sử">M</button></div>
+        <div class="tabs rgsel tfsel" id="simTf" hidden><button data-tf="D" title="Nến ngày · tối đa 2 năm gần nhất">D</button><button data-tf="W" title="Nến tuần (gộp từ nến ngày) · toàn bộ lịch sử">W</button><button data-tf="M" title="Nến tháng (gộp từ nến ngày) · toàn bộ lịch sử">M</button></div>
         <div class="tabs rgsel" id="simRange" hidden></div>
         <button class="btn sm" id="btnReload" title="Tải lại biểu đồ">↻</button>
         <button class="btn sm" id="btnMax" title="Phóng to biểu đồ trong dashboard (phím F)">⤢ Phóng to</button>
-        <button class="btn sm" id="btnIchi" title="Lớp Ichimoku 9·17·26·26 + dao găm 65/129 trên biểu đồ Nội bộ">Ichimoku</button>
+        <button class="btn sm" id="btnBB" title="Dải Bollinger (20, 2) trên biểu đồ Nội bộ — bật mặc định">BB</button>
+        <button class="btn sm" id="btnIchi" title="Đường Ichimoku 9·17 + dao găm 65/129 + Chikou trên biểu đồ Nội bộ (Mây Ichimoku luôn hiện)">Ichimoku</button>
         <button class="btn sm" id="btnFs" title="Toàn màn hình (Esc để thoát)">⛶</button>
         <button class="btn sm" id="btnNewTab" title="Mở nguồn hiện tại ở tab mới (dự phòng)">↗</button>
         <div class="chart-hint" id="chartHint"></div>
@@ -1181,7 +1183,7 @@ const state = {
   mode: ui.mode === 'OR' ? 'OR' : 'AND',
   scope: Object.assign({exchange:'', sector:'', wlOnly:false, liq:'1'}, ui.scope || {}),
   uni: ui.uni || 'HOSE', idxLive:null, idx:null, prevPx:new Map(), mkt:null, secSort:ui.secSort || 'pct',
-  vin: Array.isArray(ui.vin) && ui.vin.length ? ui.vin : VIN_DEFAULT.slice(), ichiOn: ui.ichiOn !== false, chipCol: ui.chipCol || {},
+  vin: Array.isArray(ui.vin) && ui.vin.length ? ui.vin : VIN_DEFAULT.slice(), ichiOn: ui.ichiOn !== false, bbOn: ui.bbOn !== false, chipCol: ui.chipCol || {},
   search:'',
   side: isNum(ui.side) ? ui.side : 40,
   simTf: ['D', 'W', 'M'].includes(ui.simTf) ? ui.simTf : 'D', simWins: initSimWins(ui), simOff:0, simHx:null,
@@ -1195,7 +1197,7 @@ function simKey(){ let on = false; try { on = live.on; } catch (e) {} return Str
 Object.defineProperty(state, 'simWin', {configurable:true, enumerable:true,
   get(){ const v = state.simWins[simKey()]; return isNum(v) && v > 0 ? v : 250; },
   set(v){ state.simWins[simKey()] = v; }});
-const saveUI = () => ls.set(STORE.ui, {sort:state.sort, quick:[...state.quick], rules:state.rules, mode:state.mode, scope:state.scope, side:state.side, chartMode:state.chartMode, uni:state.uni, vin:state.vin, secSort:state.secSort, ichiOn:state.ichiOn, chipCol:state.chipCol, simTf:state.simTf, simWins:state.simWins, tapeOn:TAPE.on, tapeTab:TAPE.tab, tapeBig:TAPE.big, page:state.page, recent:state.recent, dv:state.dv, compact:state.compact, v:33});
+const saveUI = () => ls.set(STORE.ui, {sort:state.sort, quick:[...state.quick], rules:state.rules, mode:state.mode, scope:state.scope, side:state.side, chartMode:state.chartMode, uni:state.uni, vin:state.vin, secSort:state.secSort, ichiOn:state.ichiOn, bbOn:state.bbOn, chipCol:state.chipCol, simTf:state.simTf, simWins:state.simWins, tapeOn:TAPE.on, tapeTab:TAPE.tab, tapeBig:TAPE.big, page:state.page, recent:state.recent, dv:state.dv, compact:state.compact, v:34});
 /* Khung Khớp lệnh — khai báo sớm vì saveUI dùng tới (logic ở mục 17) */
 const BIG_OPTS = [[1e8, '100 triệu'], [3e8, '300 triệu'], [5e8, '500 triệu'], [1e9, '1 tỷ'], [2e9, '2 tỷ'], [5e9, '5 tỷ'], [1e10, '10 tỷ']];
 const TAPE = {
@@ -2421,7 +2423,7 @@ const CHART_SRC = {
         hint: 'Vietstock Chart · TradingView engine. Nút ☀ góc trên chart để chuyển nền tối (Vietstock tự ghi nhớ).'},
   fa:  {url: t => 'https://fireant.vn/ma-chung-khoan/' + encodeURIComponent(t),
         hint: 'FireAnt Hồ sơ · chart + chỉ số cơ bản thực + tin tức/thảo luận. Cuộn bên trong khung để xem thêm.'},
-  sim: {url: null, hint: 'Nội bộ · D/W/M: nến ngày · tuần · tháng (VPS; D, W tối đa 2 năm gần nhất · M toàn bộ lịch sử) · lăn chuột: phóng to/thu nhỏ · kéo: xem quá khứ · nhấp đúp: về hiện tại'},
+  sim: {url: null, hint: 'Nội bộ · D/W/M: nến ngày · tuần · tháng (VPS; D tối đa 2 năm gần nhất · W, M toàn bộ lịch sử) · lăn chuột: phóng to/thu nhỏ · kéo: xem quá khứ · nhấp đúp: về hiện tại'},
   mtf: {url: null, hint: 'Đa khung · Ngày VSA · Tuần / Ngày / Tháng Ichimoku (nến tuần/tháng gộp từ nến ngày VPS) · lăn chuột: phóng to/thu nhỏ cả 4 khung · nhấp đúp: mặc định · ⤢ Phóng to để xem rộng'}
 };
 let chartLoadTimer;
@@ -2600,22 +2602,24 @@ function drawLines(g, W, H, dates, lines, title, k0){
   });
   if (lines.length === 2) { const a = lines[0].vals[N - 1], b = lines[1].vals[N - 1]; if (isNum(a) && isNum(b)) { g.fillStyle = '#9ca3af'; g.fillText(`Chênh lệch hiện tại: ${(b - a >= 0 ? '+' : '') + (b - a).toFixed(1)} ${a > 500 ? 'điểm' : 'điểm gốc-100'}`, padL + 4, 34); } }
 }
+const BB_CACHE = new WeakMap();
+function bbOf(C){ let r = BB_CACHE.get(C); if (!r) { r = bollArr(C, 20, 2); BB_CACHE.set(C, r); } return r; }
 function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
   const n = X.c.length, nA = X.cap > 0 ? Math.min(n, X.cap) : n, base = n - nA, unit = X.unit || 'phiên';   // nA: số nến được xem (D/W: 2 năm)
   if (X.cap > 0 && n >= X.cap && !(state.simWin <= nA)) state.simWin = nA;
   const win = clamp(Math.round(state.simWin > 0 ? state.simWin : 250), Math.min(20, nA), nA);
   const off = clamp(Math.round(state.simOff || 0), 0, nA - win); state.simOff = off;
-  const end = n - off, s0 = end - win, ichi = !!(state.ichiOn && X.tk);
-  const fut = ichi && off === 0 ? 26 : 0, slots = win + fut;
+  const end = n - off, s0 = end - win, ichi = !!(state.ichiOn && X.tk), cloud = !!(X.sa && X.sb);   // v3.4: Mây Ichimoku luôn hiện
+  const bb = state.bbOn !== false ? bbOf(X.c) : null;                                                  // v3.4: dải Bollinger 20,2
+  const fut = cloud && off === 0 ? 26 : 0, slots = win + fut;
   const padL = 8, padR = 62, padT = 30, padB = 20, volH = Math.round(H * 0.16), priceH = H - volH - padT - padB - 4;
   const cl = p => { const q = p - 26; return q >= 0 && q < n && X.sa[q] !== null && X.sb[q] !== null ? [X.sa[q], X.sb[q]] : null; };
   let hi = -Infinity, lo = Infinity;
   const acc = v => { if (v !== null && v !== undefined && isFinite(v)) { if (v > hi) hi = v; if (v < lo) lo = v; } };
   for (let k = s0; k < end; k++) { acc(X.h[k]); acc(X.l[k]); }
-  if (ichi) {
-    for (let k = s0; k < end; k++) { acc(X.tk[k]); acc(X.kj[k]); acc(X.kn[k]); acc(X.kn2[k]); }
-    for (let p = s0; p < end + fut; p++) { const z = cl(p); if (z) { acc(z[0]); acc(z[1]); } }
-  }
+  if (ichi) for (let k = s0; k < end; k++) { acc(X.tk[k]); acc(X.kj[k]); acc(X.kn[k]); acc(X.kn2[k]); }
+  if (cloud) for (let p = s0; p < end + fut; p++) { const z = cl(p); if (z) { acc(z[0]); acc(z[1]); } }
+  if (bb) for (let k = s0; k < end; k++) { acc(bb.up[k]); acc(bb.dn[k]); }
   const pad = (hi - lo) * 0.03 || 1; hi += pad; lo -= pad; const span = hi - lo;
   const plotW = W - padL - padR, cw = plotW / slots;
   const y = v => padT + (hi - v) / span * priceH, x = p => padL + (p - s0) * cw + cw / 2;
@@ -2639,7 +2643,13 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
     g.strokeStyle = mo === 1 ? '#262d3b' : '#191f2a'; g.beginPath(); g.moveTo(xx, padT); g.lineTo(xx, H - padB); g.stroke();
     g.fillStyle = mo === 1 ? '#9ca3af' : '#6b7280'; g.fillText(yearly || mo === 1 ? d.slice(0, 4) : 'Th' + mo, xx, H - 6);
   }
-  if (ichi) {   // Mây (dịch 26 phiên về tương lai)
+  if (bb) {      // dải Bollinger: nền mờ giữa 2 biên + 2 đường biên
+    g.fillStyle = 'rgba(129,140,248,.075)'; g.beginPath(); let st = false;
+    for (let k = s0; k < end; k++) { if (bb.up[k] === null) continue; st ? g.lineTo(x(k), y(bb.up[k])) : g.moveTo(x(k), y(bb.up[k])); st = true; }
+    for (let k = end - 1; k >= s0; k--) { if (bb.dn[k] === null) continue; g.lineTo(x(k), y(bb.dn[k])); }
+    if (st) { g.closePath(); g.fill(); }
+  }
+  if (cloud) {  // Mây (dịch 26 nến về tương lai)
     for (let p = s0; p < end + fut - 1; p++) {
       const a = cl(p), b = cl(p + 1); if (!a || !b) continue;
       g.fillStyle = a[0] >= a[1] ? 'rgba(0,176,111,.16)' : 'rgba(242,54,69,.16)';
@@ -2662,14 +2672,17 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
   }
   const line = (arr, col, w, from, to, off2 = 0, dash) => { g.strokeStyle = col; g.lineWidth = w; if (dash) g.setLineDash(dash); g.beginPath(); let st = false; for (let k = from; k < to; k++) { const v = arr[k + off2]; if (v === null || v === undefined || !isFinite(v)) continue; st ? g.lineTo(x(k), y(v)) : g.moveTo(x(k), y(v)); st = true; } g.stroke(); g.setLineDash([]); };
   const legend = [];
+  if (bb) { line(bb.up, 'rgba(129,140,248,.75)', 1, s0, end); line(bb.dn, 'rgba(129,140,248,.75)', 1, s0, end); }
   if (ichi) {
     line(X.kn2, '#fb923c', 2, s0, end); line(X.kn, '#facc15', 2, s0, end); line(X.kj, '#3b82f6', 1.4, s0, end); line(X.tk, '#ef4444', 1.2, s0, end);
     line(X.c, '#a3e635', 1.1, s0, Math.min(end, n - 26), 26, [3, 3]);                    // Chikou: giá lùi 26 phiên
-    legend.push(['TK9', '#ef4444'], ['KJ17', '#3b82f6'], ['DG65', '#facc15'], ['DG129', '#fb923c'], ['Chikou', '#a3e635'], ['Mây 26', '#00b06f']);
+    legend.push(['TK9', '#ef4444'], ['KJ17', '#3b82f6'], ['DG65', '#facc15'], ['DG129', '#fb923c'], ['Chikou', '#a3e635']);
   } else {
     line(X.ma20, '#f5a623', 1.4, s0, end); line(X.ma50, '#2962ff', 1.4, s0, end);
     legend.push(['MA20', '#f5a623'], ['MA50', '#2962ff']);
   }
+  if (cloud) legend.push(['Mây 26', '#00b06f']);
+  if (bb) legend.push(['BB 20,2', '#818cf8']);
   if (levels && levels.length) {                                            // v3.0: vùng vào · cắt lỗ · mục tiêu
     g.font = 'bold 10px JetBrains Mono, monospace'; const placed = [];
     levels.forEach(L => {
@@ -2714,12 +2727,12 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
 const LONG_DAYS = 365 * 30, LONG_TTL = 8 * 3600e3, LONG_MAX = 12;
 live.longCache = new Map(); live.ltb = new Map();
 const RANGES = [[63, '3Th', '3 tháng'], [126, '6Th', '6 tháng'], [250, '1N', '1 năm'], [500, '2N', '2 năm'], [1250, '5N', '5 năm'], [0, 'Max', 'toàn bộ lịch sử']];
-/* v3.3 · D/W/M: D và W tối đa 2 năm gần nhất (500 phiên / 104 tuần) · M không giới hạn.
+/* v3.3 · D/W/M — v3.4: chỉ D tối đa 2 năm gần nhất (500 phiên) · W và M không giới hạn.
    Chỉ báo (TK/KJ/Mây/DG65/DG129) vẫn tính trên TOÀN BỘ lịch sử rồi mới cắt khung hiển thị → khớp AmiBroker. */
 const TF_RANGES = {D:[[63, '3Th', '3 tháng'], [126, '6Th', '6 tháng'], [250, '1N', '1 năm'], [500, '2N', '2 năm']],
-                   W:[[26, '6Th', '6 tháng'], [52, '1N', '1 năm'], [104, '2N', '2 năm']],
+                   W:[[26, '6Th', '6 tháng'], [52, '1N', '1 năm'], [104, '2N', '2 năm'], [260, '5N', '5 năm'], [0, 'Max', 'toàn bộ lịch sử']],
                    M:[[24, '2N', '2 năm'], [60, '5N', '5 năm'], [120, '10N', '10 năm'], [0, 'Max', 'toàn bộ lịch sử']], S:RANGES};
-const TF_CAP = {D:500, W:104, M:0}, TF_UNIT = {D:'phiên', W:'tuần', M:'tháng'};
+const TF_CAP = {D:500, W:0, M:0}, TF_UNIT = {D:'phiên', W:'tuần', M:'tháng'};
 function tfSeries(sym, tf, D, part){                      // gộp nến ngày (đã gồm phiên đang chạy) → tuần/tháng, có cache
   const n = D.c.length, sig = [sym, tf, n, D.c[n - 1], D.v[n - 1], D.h[n - 1], D.l[n - 1], D.d[n - 1], part ? 1 : 0].join('|');
   const C = live.tfc || (live.tfc = new Map()), key = sym + ':' + tf, old = C.get(key);
@@ -3490,6 +3503,12 @@ function bindEvents(){
   $('#btnReload').addEventListener('click', reloadChart);
   $('#btnMax').addEventListener('click', () => toggleMax());
   $('#btnFs').addEventListener('click', toggleFullscreen);
+  $('#btnBB').classList.toggle('on', state.bbOn);
+  $('#btnBB').addEventListener('click', () => {
+    state.bbOn = !state.bbOn; saveUI(); $('#btnBB').classList.toggle('on', state.bbOn);
+    if (state.chartMode !== 'sim') { state._restoreMode = null; if (state.chartSymbol.startsWith('#')) state.chartSymbol = state.selected || 'VNINDEX'; setChartMode('sim'); state.bbOn = true; $('#btnBB').classList.add('on'); saveUI(); }
+    drawSim();
+  });
   $('#btnIchi').classList.toggle('on', state.ichiOn);
   $('#btnIchi').addEventListener('click', () => {
     state.ichiOn = !state.ichiOn; saveUI(); $('#btnIchi').classList.toggle('on', state.ichiOn);
