@@ -92,6 +92,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .logo{width:30px;height:30px;border-radius:3px;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:700}
 .title{font-weight:700;letter-spacing:.1em;font-size:14px}
 .sub{font-size:10.5px;color:var(--muted);letter-spacing:.02em}
+.brand .title{line-height:1.25}.brand .sub{line-height:1.3}
+.contact{font-size:10px;color:var(--muted);white-space:nowrap;line-height:1.25}.contact a{display:block;color:inherit;text-decoration:none}.contact a:hover{color:var(--accent);text-decoration:underline}
 .indices{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden;flex:none}
 .idx{display:flex;flex-direction:column;align-items:flex-start;gap:0;background:var(--bg2);border:none;padding:4px 10px;cursor:pointer;min-width:104px;text-align:left}
 .idx:hover{background:var(--hover)}
@@ -299,7 +301,7 @@ body:not(.filt-open) #chips,body:not(.filt-open) #advBox{display:none}
   html,body{height:100%}
   body{overflow:hidden;overscroll-behavior:none}
   .top{height:auto;flex-wrap:wrap;padding:6px 10px calc(6px) 10px;gap:6px 10px;padding-top:max(6px, env(safe-area-inset-top))}
-  .brand .sub{display:none}
+  .brand .sub,.brand .contact{display:none}
   .brand .logo{width:26px;height:26px}
   .indices{order:5;width:100%;overflow-x:auto;scrollbar-width:none}
   .indices::-webkit-scrollbar{display:none}
@@ -530,7 +532,8 @@ html:not(.locked) #lock{display:none}
 #lock .lk{width:100%;max-width:340px;background:#111a2b;border:1px solid #24324a;border-radius:12px;padding:26px 22px;box-shadow:0 20px 50px rgba(0,0,0,.45);text-align:center;font-family:Inter,system-ui,sans-serif;color:#d6deeb}
 #lock .lk-logo{width:44px;height:44px;border-radius:10px;background:#2962ff;color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
 #lock h1{font-size:17px;letter-spacing:.08em;margin:0;color:#fff}
-#lock .lk-by{font-size:12px;color:#8b98ad;margin:4px 0 18px}
+#lock .lk-by{font-size:12px;color:#8b98ad;margin:4px 0 2px}
+#lock .lk-ct{font-size:11.5px;color:#8b98ad;margin:0 0 18px}#lock .lk-ct a{color:inherit;text-decoration:none}#lock .lk-ct a:hover{color:#fff;text-decoration:underline}
 #lock input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:8px;border:1px solid #2c3b56;background:#0b1220;color:#fff;font-size:16px;outline:none}
 #lock input:focus{border-color:#2962ff}
 #lock button{width:100%;margin-top:10px;padding:11px;border:0;border-radius:8px;background:#2962ff;color:#fff;font-weight:700;font-size:15px;cursor:pointer}
@@ -645,6 +648,7 @@ table.compact .x-full{display:none}
     <div class="lk-logo">R</div>
     <h1>VN-STOCK RADAR</h1>
     <div class="lk-by">By Mai Xuân Tiến</div>
+    <div class="lk-ct"><a href="mailto:xuantienmai@gmail.com">✉ xuantienmai@gmail.com</a> · <a href="tel:+84906252238">☎ 0906.252.238</a></div>
     <div class="lk-js">
       <input type="password" id="lockPw" placeholder="Nhập mật khẩu" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>
       <button type="submit">Mở</button>
@@ -658,7 +662,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.4">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.5">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -792,7 +796,7 @@ table.compact .x-full{display:none}
         <button class="btn sm" id="btnReload" title="Tải lại biểu đồ">↻</button>
         <button class="btn sm" id="btnMax" title="Phóng to biểu đồ trong dashboard (phím F)">⤢ Phóng to</button>
         <button class="btn sm" id="btnBB" title="Dải Bollinger (20, 2) trên biểu đồ Nội bộ — bật mặc định">BB</button>
-        <button class="btn sm" id="btnIchi" title="Đường Ichimoku 9·17 + dao găm 65/129 + Chikou trên biểu đồ Nội bộ (Mây Ichimoku luôn hiện)">Ichimoku</button>
+        <button class="btn sm" id="btnIchi" title="Đường Ichimoku 9·17 + dao găm 65/129 + Chikou trên biểu đồ Nội bộ — bật: Mây theo hệ 9·17·26 · tắt: vẫn hiện Mây chuẩn 9·26·52">Ichimoku</button>
         <button class="btn sm" id="btnFs" title="Toàn màn hình (Esc để thoát)">⛶</button>
         <button class="btn sm" id="btnNewTab" title="Mở nguồn hiện tại ở tab mới (dự phòng)">↗</button>
         <div class="chart-hint" id="chartHint"></div>
@@ -2604,16 +2608,26 @@ function drawLines(g, W, H, dates, lines, title, k0){
 }
 const BB_CACHE = new WeakMap();
 function bbOf(C){ let r = BB_CACHE.get(C); if (!r) { r = bollArr(C, 20, 2); BB_CACHE.set(C, r); } return r; }
+/* Mây Ichimoku chuẩn của các nền tảng (9, 26, 52, dịch 26): Span A = (Tenkan9 + Kijun26)/2 · Span B = (Đỉnh+Đáy)/2 của 52 kỳ */
+const CC_CACHE = new WeakMap();
+function classicCloud(X){
+  if (!X || !X.h || !X.l) return null;
+  let r = CC_CACHE.get(X.h); if (r && r.n === X.h.length) return r;
+  const t9 = rollMid(X.h, X.l, 9), k26 = rollMid(X.h, X.l, 26);
+  r = {n:X.h.length, sa:t9.map((v, j) => v !== null && k26[j] !== null ? (v + k26[j]) / 2 : null), sb:rollMid(X.h, X.l, 52)};
+  CC_CACHE.set(X.h, r); return r;
+}
 function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
   const n = X.c.length, nA = X.cap > 0 ? Math.min(n, X.cap) : n, base = n - nA, unit = X.unit || 'phiên';   // nA: số nến được xem (D/W: 2 năm)
   if (X.cap > 0 && n >= X.cap && !(state.simWin <= nA)) state.simWin = nA;
   const win = clamp(Math.round(state.simWin > 0 ? state.simWin : 250), Math.min(20, nA), nA);
   const off = clamp(Math.round(state.simOff || 0), 0, nA - win); state.simOff = off;
-  const end = n - off, s0 = end - win, ichi = !!(state.ichiOn && X.tk), cloud = !!(X.sa && X.sb);   // v3.4: Mây Ichimoku luôn hiện
+  const end = n - off, s0 = end - win, ichi = !!(state.ichiOn && X.tk);
+  const CL = ichi ? (X.sa && X.sb ? {sa:X.sa, sb:X.sb} : null) : classicCloud(X), cloud = !!CL;   // v3.5: Mây luôn hiện — tắt Ichimoku: Mây chuẩn 9·26·52
   const bb = state.bbOn !== false ? bbOf(X.c) : null;                                                  // v3.4: dải Bollinger 20,2
   const fut = cloud && off === 0 ? 26 : 0, slots = win + fut;
   const padL = 8, padR = 62, padT = 30, padB = 20, volH = Math.round(H * 0.16), priceH = H - volH - padT - padB - 4;
-  const cl = p => { const q = p - 26; return q >= 0 && q < n && X.sa[q] !== null && X.sb[q] !== null ? [X.sa[q], X.sb[q]] : null; };
+  const cl = p => { const q = p - 26; return CL && q >= 0 && q < n && CL.sa[q] !== null && CL.sb[q] !== null ? [CL.sa[q], CL.sb[q]] : null; };
   let hi = -Infinity, lo = Infinity;
   const acc = v => { if (v !== null && v !== undefined && isFinite(v)) { if (v > hi) hi = v; if (v < lo) lo = v; } };
   for (let k = s0; k < end; k++) { acc(X.h[k]); acc(X.l[k]); }
@@ -2681,7 +2695,7 @@ function drawCandles(g, W, H, X, title, lastPx, stCls, label, labelCol, levels){
     line(X.ma20, '#f5a623', 1.4, s0, end); line(X.ma50, '#2962ff', 1.4, s0, end);
     legend.push(['MA20', '#f5a623'], ['MA50', '#2962ff']);
   }
-  if (cloud) legend.push(['Mây 26', '#00b06f']);
+  if (cloud) legend.push([ichi ? 'Mây 9·17·26' : 'Mây 9·26·52', '#00b06f']);
   if (bb) legend.push(['BB 20,2', '#818cf8']);
   if (levels && levels.length) {                                            // v3.0: vùng vào · cắt lỗ · mục tiêu
     g.font = 'bold 10px JetBrains Mono, monospace'; const placed = [];
