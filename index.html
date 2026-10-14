@@ -563,7 +563,7 @@ table.compact .x-full{display:none}
 .decide{padding:0 10px 8px;display:flex;flex-direction:column;gap:6px}
 .lightbar{display:flex;align-items:center;gap:6px 9px;border:1px solid var(--line2);border-radius:4px;padding:6px 9px;background:var(--bg1);font-size:12px;flex-wrap:wrap}
 .lt{font-weight:700;white-space:nowrap;letter-spacing:.01em}
-.lt-off{color:#ff5c6a}.lt-probe{color:#f5a623}.lt-go{color:#22c55e}
+.lt-off{color:#ff5c6a}.lt-on{color:#22c55e}.lt-go{color:#4ade80;text-shadow:0 0 10px rgba(74,222,128,.35)}
 .lightbar .ld{color:var(--muted);font-size:11.5px;flex:1 1 220px;min-width:0}
 .lightbar .ld b{color:var(--text)}
 .ldr{background:var(--bg0);border:1px solid var(--line2);border-radius:3px;padding:1px 6px;font:600 11px var(--mono);cursor:pointer;color:var(--text)}
@@ -656,7 +656,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.0.2">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.1">By Mai Xuân Tiến</div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -1854,27 +1854,41 @@ function techFor(t){
      0 thiếu dữ liệu → 1 CẢNH BÁO (mã đang/vừa mạnh mà VỪA mất DG65: 3–10 phiên ĐÃ đóng · hoặc nến SOW/BCLX/RUC) → 2 ĐIỂM MUA (Pivot XN hôm nay hoặc
      BO cản chéo xác nhận + Ichimoku 5/5 + trên DG65) → 3 CANH MUA (Loại 1/2 · Spring ≤4p · Pivot 1–4p còn trong +3%) →
      4 THEO DÕI (giá trên DG65 + có tín hiệu) → 5 ĐỨNG NGOÀI (dưới DG65: tín hiệu đáy chỉ ghi chú).
-   Hạ bậc: thanh khoản <10 tỷ · trong phiên trước 14:45 (tạm tính) · công tắc thị trường TẮT · dữ liệu cũ.
+   Hạ bậc: thanh khoản <10 tỷ · trong phiên trước 14:45 (tạm tính) · dữ liệu cũ. Công tắc TẮT không hạ bậc mà gắn “thăm dò” (tỷ trọng thấp).
    Mục tiêu T1 = MA200, T2 = đỉnh 52T (§13.108) · cắt lỗ = mất DG65 (3 phiên đóng dưới) và mốc kỷ luật −4% (§15.39).
    ========================================================================= */
 const DV = {buy:{l:'Điểm mua', g:'●', o:6}, wb:{l:'Canh mua', g:'◐', o:5}, wt:{l:'Theo dõi', g:'○', o:4},
             wn:{l:'Cảnh báo', g:'▲', o:3}, out:{l:'Đứng ngoài', g:'–', o:2}, na:{l:'Chưa đủ dữ liệu', g:'?', o:1}};
-const LIGHT = {off:{l:'TẮT', g:'○', c:'lt-off'}, probe:{l:'THĂM DÒ', g:'◐', c:'lt-probe'}, go:{l:'GIẢI NGÂN MẠNH', g:'●', c:'lt-go'}};
+const LIGHT = {off:{l:'TẮT', g:'○', c:'lt-off', w:'Tỷ trọng thấp — chỉ thăm dò cược CP có khả năng dẫn dắt'}, on:{l:'BẬT', g:'●', c:'lt-on', w:'Đã có CP dẫn dắt — giải ngân theo kế hoạch'}, go:{l:'BẬT · có ngành dẫn dắt', g:'●', c:'lt-go', w:'Có cả CP dẫn dắt và ngành dẫn dắt — trạng thái mạnh nhất'}};
 const ddmm = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) : '—';
 function sessionLive(){ const n = vnNow(), wd = WD_IDX[n.wd], m = n.h * 60 + n.m; return wd > 0 && wd < 6 && m >= 540 && m < 885; }   // 09:00–14:45
 function daysOld(d){ const a = Date.parse(vnDate()), b = Date.parse(d || ''); return isFinite(a) && isFinite(b) ? Math.round((a - b) / 864e5) : 99; }
+/* Công tắc thị trường (luật của Sếp, 14/10/2026):
+   BẬT  = đã xuất hiện CP DẪN DẮT (mạnh nhất: có cả CP dẫn dắt + NGÀNH dẫn dắt).
+   TẮT  = chưa có CP dẫn dắt → tỷ trọng thấp, chỉ thăm dò cược CP có khả năng dẫn dắt.
+   CP dẫn dắt (≈§15.34D): Pivot xác nhận ≤5 phiên (tăng · vol ≥1,5× TB20 · trên DG65 · Chikou thoáng) + sát đỉnh 52T ≤15%
+                          + GTGD TB20 ≥10 tỷ + RS ≥50 + không cảnh báo.
+   Ngành dẫn dắt (≈§15.39): ngành ≥4 mã, có ≥1 CP dẫn dắt, ≥3 mã có Pivot ≤5 phiên, RS ngành ≥50.
+   Khả năng dẫn dắt (khi TẮT, §13.16): CP Loại 1 tích luỹ sát đỉnh, không cảnh báo, gần đỉnh nhất trước. */
 function computeLight(list){
   const T = list.filter(o => o.wy && o.ic && isNum(o.ic.score));
   if (!T.length) return null;
   const lead = T.filter(o => o.wy.pv5 > 0 && isNum(o.wy.distTop) && o.wy.distTop <= 15 && isNum(o.wy.gtgd) && o.wy.gtgd >= 10 && isNum(o.rs) && o.rs >= 50 && !o.wy.warn.length)
     .sort((a, b) => (a.wy.bsPivot - b.wy.bsPivot) || (b.rs - a.rs));
-  const n = lead.length, k = n >= 3 ? 'go' : n >= 1 ? 'probe' : 'off';
+  const sec = {};
+  T.forEach(o => { if (!o.sector) return; const x = sec[o.sector] || (sec[o.sector] = {n:0, pv:0, lead:[]}); x.n++; if (o.wy.pv5 > 0) x.pv++; });
+  lead.forEach(o => { if (sec[o.sector]) sec[o.sector].lead.push(o.ticker); });
+  const sRs = s => state.mkt && state.mkt.secMap && state.mkt.secMap[s] && isNum(state.mkt.secMap[s].rs) ? state.mkt.secMap[s].rs : null;
+  const lsec = Object.entries(sec).filter(([s, x]) => x.n >= 4 && x.lead.length >= 1 && x.pv >= 3 && (sRs(s) === null || sRs(s) >= 50))
+    .map(([s, x]) => ({s, pv:x.pv, n:x.n, lead:x.lead, rs:sRs(s)})).sort((a, b) => b.lead.length - a.lead.length || b.pv - a.pv);
+  const cand = T.filter(o => o.wy.l1 && !o.wy.warn.length && !lead.includes(o)).sort((a, b) => a.wy.distTop - b.wy.distTop).slice(0, 6).map(o => o.ticker);
+  const n = lead.length, k = n === 0 ? 'off' : lsec.length ? 'go' : 'on';
   let idx = null; const S = live.series, vi = state.idxLive && state.idxLive.VNINDEX;
   if (S && S.vni) {
     let a = S.vni.filter(isNum); if (vi && isNum(vi.last) && state.mkt && state.mkt.appendToday) a = a.concat([vi.last]);
     if (a.length >= 50) { const avg = q => a.slice(-q).reduce((x, y) => x + y, 0) / q; idx = {last:a[a.length - 1], ma20:avg(20), ma50:avg(50)}; }
   }
-  return {k, n, N:T.length, lead:lead.slice(0, 8).map(o => o.ticker), prov:T.some(o => o.tx && o.tx.live) && sessionLive(), idx,
+  return {k, n, N:T.length, lead:lead.slice(0, 8).map(o => o.ticker), lsec, cand, prov:T.some(o => o.tx && o.tx.live) && sessionLive(), idx,
           ex:state.mkt && state.mkt.vni ? state.mkt.vni.exPct : null};
 }
 function decide(o, L){
@@ -1947,8 +1961,7 @@ function decide(o, L){
   if (!(isNum(gt) && gt >= 10)) cap('wt', `Thanh khoản thấp: GTGD TB20 ${isNum(gt) ? gt.toFixed(1) : '—'} tỷ < 10 tỷ`);
   if (daysOld(x.d) > 4) cap('wt', `Dữ liệu cũ: nến cuối ${ddmm(x.d)}`);
   if (k === 'buy' && prov) cap('wb', 'Tín hiệu trong phiên — xác nhận khi đóng cửa (sau 14:45)');
-  if (k === 'buy' && L && L.k === 'off') cap('wb', 'Công tắc thị trường TẮT — chưa giải ngân');
-  return {k, r:R.slice(0, 4), b:B.slice(0, 3), prov, sub:k === 'buy' && L && L.k === 'probe' ? ' · thăm dò' : ''};
+  return {k, r:R.slice(0, 4), b:B.slice(0, 3), prov, sub:k === 'buy' && L && L.k === 'off' ? ' · thăm dò' : ''};
 }
 function computeDecisions(data){
   state.light = computeLight(data);
@@ -1985,9 +1998,13 @@ function lightText(L, long){
   const G = LIGHT[L.k], ix = L.idx;
   const ixt = ix ? `VNINDEX <b>${ix.last >= ix.ma50 ? 'trên' : 'dưới'} MA50</b> (${fmtIdx(ix.ma50)})${ix.last >= ix.ma20 ? '' : ' · dưới MA20'}` : '';
   const ext = isNum(L.ex) ? ` · ex-Vin hôm nay <span class="${L.ex >= 0 ? 'up' : 'down'}">${(L.ex > 0 ? '+' : '') + L.ex.toFixed(2)}%</span>` : '';
-  const leads = L.lead.length ? ' ' + L.lead.map(t => `<button class="ldr" data-go="${esc(t)}" title="Mã dẫn dắt có Pivot ≤5 phiên — bấm để xem">${esc(t)}</button>`).join(' ') : '';
-  return `<span class="lt ${G.c}" title="Xấp xỉ công tắc giải ngân 3 nấc (§15.38): 0 mã dẫn dắt có Pivot ≤5 phiên → TẮT · ≥1 → THĂM DÒ · ≥3 → GIẢI NGÂN MẠNH.\nMã dẫn dắt = Pivot xác nhận ≤5 phiên + cách đỉnh 52T ≤15% + GTGD TB20 ≥10 tỷ + RS ≥50 + không có cảnh báo.\nĐo độ rộng nhóm dẫn dắt trong phạm vi đang quét, KHÔNG đo xu hướng chỉ số.">${G.g} Công tắc: ${G.l}</span>`
-    + `<span class="ld"><b>${L.n}</b> mã dẫn dắt có Pivot ≤5 phiên / ${L.N} mã quét${leads}${long ? '<br>' : ' · '}${ixt}${ext}${L.prov ? ' · <span class="ref">tạm tính trong phiên</span>' : ''}</span>`;
+  const chip = (t, tip) => `<button class="ldr" data-go="${esc(t)}" title="${esc(tip)}">${esc(t)}</button>`;
+  let body;
+  if (L.k === 'off') body = `Chưa có CP dẫn dắt — <b>tỷ trọng thấp</b>, thăm dò cược CP có khả năng dẫn dắt${L.cand.length ? ': ' + L.cand.map(t => chip(t, 'Loại 1 tích luỹ sát đỉnh — khả năng dẫn dắt')).join(' ') : ' (chưa có mã Loại 1 sát đỉnh)'}`;
+  else body = `<b>${L.n}</b> CP dẫn dắt: ${L.lead.map(t => chip(t, 'CP dẫn dắt: Pivot ≤5 phiên + sát đỉnh 52T + GTGD ≥10 tỷ + RS ≥50')).join(' ')}`
+    + (L.lsec.length ? ` · ngành dẫn dắt: <b>${L.lsec.map(x => esc(x.s)).join(', ')}</b>` : ' · chưa có ngành dẫn dắt');
+  return `<span class="lt ${G.c}" title="Luật công tắc của Sếp: BẬT khi đã có CP dẫn dắt (mạnh nhất khi có cả ngành dẫn dắt) · TẮT khi chưa có → tỷ trọng thấp, thăm dò cược CP có khả năng dẫn dắt.\nCP dẫn dắt = Pivot xác nhận ≤5 phiên (tăng, vol ≥1,5×, trên DG65) + cách đỉnh 52T ≤15% + GTGD TB20 ≥10 tỷ + RS ≥50 + không cảnh báo.\nNgành dẫn dắt = ngành ≥4 mã, có CP dẫn dắt, ≥3 mã có Pivot ≤5 phiên, RS ngành ≥50.\nKhả năng dẫn dắt (khi TẮT) = CP Loại 1 tích luỹ sát đỉnh.">${G.g} Công tắc: ${G.l}</span>`
+    + `<span class="ld">${body}${long ? '<br>' : ' · '}${ixt}${ext}${L.prov ? ' · <span class="ref">tạm tính trong phiên</span>' : ''}</span>`;
 }
 function renderDecide(){
   const el = $('#decide'); if (!el) return;
@@ -1996,7 +2013,7 @@ function renderDecide(){
   const stW = base.filter(o => state.watch.has(o.ticker) && o.dv && o.dv.k === 'wn').length;
   const bk = (k, lbl, g, tip) => `<button class="bk ${state.dv === k ? 'on' : ''} ${k && !(k === 'star' ? stW : cnt[k]) ? 'zero' : ''} ${k === 'star' ? 'st' : ''}" data-dv="${k}" title="${esc(tip)}">${g ? `<i class="g-${k}">${g}</i>` : ''}${lbl} <b>${k === '' ? base.length : k === 'star' ? stW : (cnt[k] || 0)}</b></button>`;
   el.innerHTML = `<div class="lightbar">${lightText(state.light)}</div>
-    <div class="buckets">${bk('', 'Tất cả', '', 'Toàn bộ mã đang lọc')}${bk('buy', 'Điểm mua', '●', 'Có tín hiệu kích hoạt (Pivot XN / BO cản chéo xác nhận) + Ichimoku 5/5 + trên DG65 + đủ thanh khoản')}${bk('wb', 'Canh mua', '◐', 'Đã có mẫu hình (Loại 1/2, Spring ≤4p, Pivot ≤4p còn trong +3%) + Ichimoku ≥4/5, chờ kích hoạt hoặc chờ đóng phiên')}${bk('wt', 'Theo dõi', '○', 'Giá trên DG65 và có tín hiệu (No Supply, cạn cung, sát/trên cản chéo, bò MA10/20, xu hướng Ichimoku tăng…) nhưng chưa đủ điều kiện vào')}${bk('wn', 'Cảnh báo', '▲', 'Mã đang/vừa ở thế mạnh nhưng: VỪA mất dao găm (3–10 phiên đóng dưới DG65) hoặc nến SOW/BCLX/rục đầu')}${bk('out', 'Đứng ngoài', '–', 'Giá dưới DG65 (tín hiệu tạo đáy chỉ ghi chú) hoặc chưa có tín hiệu theo hệ')}${cnt.na ? bk('na', 'Chưa đủ dữ liệu', '?', 'Thiếu lịch sử giá') : ''}${bk('star', '★ cần xem', '', 'Mã trong Watchlist đang ở trạng thái Cảnh báo')}
+    <div class="buckets">${bk('', 'Tất cả', '', 'Toàn bộ mã đang lọc')}${bk('buy', 'Điểm mua', '●', 'Có tín hiệu kích hoạt (Pivot XN / BO cản chéo xác nhận) + Ichimoku 5/5 + trên DG65 + đủ thanh khoản. Khi công tắc TẮT: ghi “thăm dò” — tỷ trọng thấp')}${bk('wb', 'Canh mua', '◐', 'Đã có mẫu hình (Loại 1/2, Spring ≤4p, Pivot ≤4p còn trong +3%) + Ichimoku ≥4/5, chờ kích hoạt hoặc chờ đóng phiên')}${bk('wt', 'Theo dõi', '○', 'Giá trên DG65 và có tín hiệu (No Supply, cạn cung, sát/trên cản chéo, bò MA10/20, xu hướng Ichimoku tăng…) nhưng chưa đủ điều kiện vào')}${bk('wn', 'Cảnh báo', '▲', 'Mã đang/vừa ở thế mạnh nhưng: VỪA mất dao găm (3–10 phiên đóng dưới DG65) hoặc nến SOW/BCLX/rục đầu')}${bk('out', 'Đứng ngoài', '–', 'Giá dưới DG65 (tín hiệu tạo đáy chỉ ghi chú) hoặc chưa có tín hiệu theo hệ')}${cnt.na ? bk('na', 'Chưa đủ dữ liệu', '?', 'Thiếu lịch sử giá') : ''}${bk('star', '★ cần xem', '', 'Mã trong Watchlist đang ở trạng thái Cảnh báo')}
     <button class="bk cmp" data-cmp="1" title="Gọn: chỉ các cột để ra quyết định · Đầy đủ: thêm Công ty, KL, P/E, P/B, ROE, Score">${state.compact ? '⊞ Đầy đủ' : '⊟ Gọn'}</button></div>`;
 }
 const dvMatch = o => !state.dv || (state.dv === 'star' ? state.watch.has(o.ticker) && o.dv && o.dv.k === 'wn' : (o.dv ? o.dv.k : 'na') === state.dv);
@@ -2018,6 +2035,7 @@ function decisionCardHTML(o){
   plan += row('Mục tiêu 1 · MA200', P.t1 ? fmtP(P.t1) : P.t1 === null ? 'đã trên' : 'chưa đủ 200 phiên', P.t1 ? pctTo(P.t1, C) : P.t1 === null ? 'MA200 ' + fmtP(P.ma200) : '', 't1');
   plan += row('Mục tiêu 2 · đỉnh 52T', P.t2 ? fmtP(P.t2) : 'sát / đã vượt', P.t2 ? pctTo(P.t2, C) : isNum(o.high52) ? fmtP(o.high52) : '', 't2');
   if (isNum(P.rr)) plan += row('Lời / lỗ (R:R)', '1 : ' + P.rr.toFixed(1), P.rr >= 2 ? '<span class="up">đáng</span>' : P.rr >= 1 ? '<span class="ref">vừa</span>' : '<span class="down">kém</span>');
+  if (L && (d.k === 'buy' || d.k === 'wb')) plan += row('Tỷ trọng (công tắc)', L.k === 'off' ? 'thấp · thăm dò' : L.k === 'go' ? 'theo kế hoạch · mạnh' : 'theo kế hoạch', '', L.k === 'off' ? 'stop' : 'en');
   const g = v => v === true ? '<span class="y">✓</span>' : v === false ? '<span class="n">✗</span>' : '<span class="m">–</span>';
   const T = {up:'Ao Sen trên Mây (tăng)', down:'Ao Sen dưới Mây (giảm)', side:'lồng Mây (tích luỹ)'}, S2 = {hbUp:'2 kiếm hợp bích lên', hbDn:'2 kiếm hợp bích xuống', flat:'2 kiếm đan xen'};
   const csT = c.csClean ? 'đường trẻ sạch' : c.cs === 1 ? 'trên mây, vướng đỉnh giá 26p' : c.csInCloud ? 'kẹt trong Mây' : c.cs === -1 ? 'dưới Mây' : 'kẹt giữa Ao Sen & Mây';
@@ -2031,7 +2049,7 @@ function decisionCardHTML(o){
     + ck(w.bar ? w.bar.s > 0 : null, 'Nến VSA', `${w.bar ? esc(w.bar.k) + ' · ' : ''}${[vol, spr, cp].filter(Boolean).join(' · ')}`)
     + ck(w.label ? !w.warn.length : null, 'Wyckoff', esc(w.label || 'chưa có mẫu hình') + (w.loai && !w.label.startsWith('Loại') ? ' · ' + esc(w.loai) : ''))
     + ck(isNum(w.gtgd) ? w.gtgd >= 10 : null, 'Thanh khoản', isNum(w.gtgd) ? `GTGD TB20 ${w.gtgd.toFixed(1)} tỷ` : '—')
-    + ck(L ? (L.k === 'off' ? false : L.k === 'go' ? true : null) : null, 'Thị trường', L ? `công tắc ${LIGHT[L.k].l} (${L.n} mã dẫn dắt)` : '—');
+    + ck(L ? L.k !== 'off' : null, 'Thị trường', L ? `công tắc ${LIGHT[L.k].l} — ${LIGHT[L.k].w.toLowerCase()}` : '—');
   return `<div class="dcard">${head}<div><div class="dc-sec">Kế hoạch giá</div><div class="plan">${plan}</div></div><div><div class="dc-sec">Checklist theo hệ của Sếp</div><div class="cl">${list}</div></div>${foot}</div>`;
 }
 function planLines(o){
