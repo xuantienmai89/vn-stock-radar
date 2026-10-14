@@ -644,7 +644,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.0">By Mai Xuân Tiến</div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.0.1">By Mai Xuân Tiến</div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -1839,9 +1839,9 @@ function techFor(t){
    4e. LỚP QUYẾT ĐỊNH (v3.0) — dễ nhìn → dễ ra quyết định
    Chỉ GỘP các cờ đã có (Wyckoff/VSA + Ichimoku) thành 1 trạng thái kèm LÝ DO — không thêm công thức tín hiệu mới,
    không đổi Radar Score/tier (§15.21). Thứ tự xét (khớp đầu tiên thắng), sau đó chỉ được HẠ bậc:
-     0 thiếu dữ liệu → 1 CẢNH BÁO (mất DG65 ≥3 phiên ĐÃ đóng · nến SOW/BCLX/RUC) → 2 ĐIỂM MUA (Pivot XN hôm nay hoặc
+     0 thiếu dữ liệu → 1 CẢNH BÁO (mã đang/vừa mạnh mà VỪA mất DG65: 3–10 phiên ĐÃ đóng · hoặc nến SOW/BCLX/RUC) → 2 ĐIỂM MUA (Pivot XN hôm nay hoặc
      BO cản chéo xác nhận + Ichimoku 5/5 + trên DG65) → 3 CANH MUA (Loại 1/2 · Spring ≤4p · Pivot 1–4p còn trong +3%) →
-     4 THEO DÕI → 5 ĐỨNG NGOÀI.
+     4 THEO DÕI (giá trên DG65 + có tín hiệu) → 5 ĐỨNG NGOÀI (dưới DG65: tín hiệu đáy chỉ ghi chú).
    Hạ bậc: thanh khoản <10 tỷ · trong phiên trước 14:45 (tạm tính) · công tắc thị trường TẮT · dữ liệu cũ.
    Mục tiêu T1 = MA200, T2 = đỉnh 52T (§13.108) · cắt lỗ = mất DG65 (3 phiên đóng dưới) và mốc kỷ luật −4% (§15.39).
    ========================================================================= */
@@ -1871,9 +1871,11 @@ function decide(o, L){
   if (!(w.relVol > 0)) return {k:'na', r:['Phiên gần nhất không có giao dịch'], b:[]};
   const prov = !!(x.live && sessionLive()), C = o.price, KN = c.KN, gt = w.gtgd, R = [], B = [];
   const below = prov ? Math.max(0, (c.belowDG || 0) - 1) : (c.belowDG || 0);            // chỉ đếm phiên ĐÃ đóng
-  const bad = w.bar && ['SOW', 'BCLX', 'RUC'].includes(w.bar.k) ? w.bar : null;
-  if (below >= 3 || bad) {
-    if (below >= 3) R.push(`Mất dao găm: ${below} phiên đóng dưới DG65 ${fmtP(KN)}`);
+  const strong = isNum(KN) && isNum(C) && (C > KN || c.trend === 'up');                 // mã đang/ vừa ở thế mạnh — nơi cảnh báo có ý nghĩa
+  const bad = w.bar && ['SOW', 'BCLX', 'RUC'].includes(w.bar.k) && strong ? w.bar : null;
+  const lostNew = below >= 3 && below <= 10;                                             // VỪA mất dao găm (≤10 phiên) · lâu hơn = downtrend → Đứng ngoài
+  if (lostNew || bad) {
+    if (lostNew) R.push(`Vừa mất dao găm: ${below} phiên đóng dưới DG65 ${fmtP(KN)}`);
     if (bad) R.push(bad.t + (prov ? ' (nến đang chạy)' : ''));
     if (c.ob18) R.push('Quá 18% so với DG65');
     return {k:'wn', r:R, b:[], prov};
@@ -1888,8 +1890,20 @@ function decide(o, L){
     if (w.spring5) st.push(`Spring ${w.springN} phiên trước`);
     let chase = false;
     if (w.pv5 > 0 && w.bsPivot >= 1 && w.bsPivot <= 4) { if (isNum(x.pvC) && isNum(C) && C <= x.pvC * 1.03) st.push(`Pivot ${w.bsPivot} phiên trước, giá còn trong +3%`); else chase = true; }
-    if (trig && !c.buy) st.push(trig.replace(/ \(.*\)$/, '') + ` — Ichimoku mới ${c.score}/5`);
+    if (trig && !c.buy) { st.push(trig.replace(/ \(.*\)$/, '')); B.push(`Ichimoku ${c.score}/5 — cần đủ 5/5 (chưa quá 18%) để thành Điểm mua`); }
     if (st.length && above && c.score >= 4 && !c.ob18) { k = 'wb'; R.push(...st, `Ichimoku ${c.score}/5`); }
+    else if (!above && !(w.l1 || w.l2)) {                                                  // dưới DG65: chưa thuộc vùng hành động (B4) — tín hiệu tạo đáy chỉ ghi chú
+      k = 'out';
+      R.push(below > 10 ? `Dưới dao găm 65 đã ${below} phiên — xu hướng giảm` : isNum(KN) ? `Giá dưới DG65 ${fmtP(KN)}` : 'Chưa có DG65');
+      const bt = [...st];
+      if (w.bar && w.bar.k === 'NS') bt.push('No Supply');
+      if (w.capState === 'BO_CHUA') bt.push('chạm cản chéo');
+      if (w.lowHeld) bt.push('cạn cung giá');
+      if (w.db2) bt.push('dạng 2 đáy');
+      if (bt.length) R.push('Tín hiệu đáy (chưa đủ): ' + bt.join(', '));
+      if (w.bar && ['SOW', 'BCLX', 'RUC'].includes(w.bar.k)) R.push(w.bar.t);
+      if (isNum(KN)) B.push(`Chờ lấy lại DG65 ${fmtP(KN)} (${pctTo(KN, C)})`);
+    }
     else {
       const W2 = [];
       if (c.ob18) W2.push('Quá mua: cách DG65 >18% — chờ tích luỹ/điều chỉnh');
@@ -1904,7 +1918,12 @@ function decide(o, L){
       if (w.db2) W2.push('Dạng 2 đáy — chưa phải tín hiệu nảy');
       if (c.trend === 'up' && c.score >= 4) W2.push(`Xu hướng Ichimoku tăng (${c.score}/5), chưa có điểm vào`);
       if (W2.length) { k = 'wt'; R.push(...W2); }
-      else { k = 'out'; R.push(c.trend === 'down' ? 'Ao Sen dưới Mây — xu hướng giảm' : c.trend === 'side' ? 'Đi ngang trong Mây, chưa có mẫu hình' : 'Chưa có tín hiệu theo hệ'); }
+      else {
+        k = 'out';
+        if (below > 10) R.push(`Dưới dao găm 65 đã ${below} phiên — xu hướng giảm`);
+        else R.push(c.trend === 'down' ? 'Ao Sen dưới Mây — xu hướng giảm' : c.trend === 'side' ? 'Đi ngang trong Mây, chưa có mẫu hình' : 'Chưa có tín hiệu theo hệ');
+        if (w.bar && ['SOW', 'BCLX', 'RUC'].includes(w.bar.k)) R.push(w.bar.t);
+      }
     }
   }
   if (k === 'wb' || k === 'wt') {
@@ -1928,7 +1947,7 @@ function planOf(o){
   const c = o.ic, w = o.wy, x = o.tx, d = o.dv, C = o.price;
   if (!c || !x || !isNum(C) || !d || d.k === 'na') return null;
   const P = {C};
-  P.ref = d.k === 'buy' ? C : (isNum(x.pvC) && w.bsPivot >= 1 && w.bsPivot <= 4 && C <= x.pvC * 1.03 ? x.pvC : null);
+  P.ref = d.k === 'buy' ? C : (isNum(x.pvC) && w.bsPivot >= 0 && w.bsPivot <= 4 && C <= x.pvC * 1.03 ? x.pvC : null);
   if (P.ref) P.max = P.ref * 1.03;
   P.sup = [['KJ17', c.KJ], ['DG65', c.KN], ['DG129', c.KN2]].filter(([, v]) => isNum(v) && v < C).sort((a, b) => b[1] - a[1]).slice(0, 2);
   P.res = [['KJ17', c.KJ], ['DG65', c.KN], ['DG129', c.KN2]].filter(([, v]) => isNum(v) && v > C).sort((a, b) => a[1] - b[1]).slice(0, 1);
@@ -1965,7 +1984,7 @@ function renderDecide(){
   const stW = base.filter(o => state.watch.has(o.ticker) && o.dv && o.dv.k === 'wn').length;
   const bk = (k, lbl, g, tip) => `<button class="bk ${state.dv === k ? 'on' : ''} ${k && !(k === 'star' ? stW : cnt[k]) ? 'zero' : ''} ${k === 'star' ? 'st' : ''}" data-dv="${k}" title="${esc(tip)}">${g ? `<i class="g-${k}">${g}</i>` : ''}${lbl} <b>${k === '' ? base.length : k === 'star' ? stW : (cnt[k] || 0)}</b></button>`;
   el.innerHTML = `<div class="lightbar">${lightText(state.light)}</div>
-    <div class="buckets">${bk('', 'Tất cả', '', 'Toàn bộ mã đang lọc')}${bk('buy', 'Điểm mua', '●', 'Có tín hiệu kích hoạt (Pivot XN / BO cản chéo xác nhận) + Ichimoku 5/5 + trên DG65 + đủ thanh khoản')}${bk('wb', 'Canh mua', '◐', 'Đã có mẫu hình (Loại 1/2, Spring ≤4p, Pivot ≤4p còn trong +3%) + Ichimoku ≥4/5, chờ kích hoạt hoặc chờ đóng phiên')}${bk('wt', 'Theo dõi', '○', 'Có tín hiệu nhưng chưa đủ điều kiện vào')}${bk('wn', 'Cảnh báo', '▲', 'Mất dao găm (≥3 phiên đóng dưới DG65) hoặc nến SOW/BCLX/rục đầu')}${bk('out', 'Đứng ngoài', '–', 'Chưa có tín hiệu theo hệ hoặc xu hướng giảm')}${cnt.na ? bk('na', 'Chưa đủ dữ liệu', '?', 'Thiếu lịch sử giá') : ''}${bk('star', '★ cần xem', '', 'Mã trong Watchlist đang ở trạng thái Cảnh báo')}
+    <div class="buckets">${bk('', 'Tất cả', '', 'Toàn bộ mã đang lọc')}${bk('buy', 'Điểm mua', '●', 'Có tín hiệu kích hoạt (Pivot XN / BO cản chéo xác nhận) + Ichimoku 5/5 + trên DG65 + đủ thanh khoản')}${bk('wb', 'Canh mua', '◐', 'Đã có mẫu hình (Loại 1/2, Spring ≤4p, Pivot ≤4p còn trong +3%) + Ichimoku ≥4/5, chờ kích hoạt hoặc chờ đóng phiên')}${bk('wt', 'Theo dõi', '○', 'Giá trên DG65 và có tín hiệu (No Supply, cạn cung, sát/trên cản chéo, bò MA10/20, xu hướng Ichimoku tăng…) nhưng chưa đủ điều kiện vào')}${bk('wn', 'Cảnh báo', '▲', 'Mã đang/vừa ở thế mạnh nhưng: VỪA mất dao găm (3–10 phiên đóng dưới DG65) hoặc nến SOW/BCLX/rục đầu')}${bk('out', 'Đứng ngoài', '–', 'Giá dưới DG65 (tín hiệu tạo đáy chỉ ghi chú) hoặc chưa có tín hiệu theo hệ')}${cnt.na ? bk('na', 'Chưa đủ dữ liệu', '?', 'Thiếu lịch sử giá') : ''}${bk('star', '★ cần xem', '', 'Mã trong Watchlist đang ở trạng thái Cảnh báo')}
     <button class="bk cmp" data-cmp="1" title="Gọn: chỉ các cột để ra quyết định · Đầy đủ: thêm Công ty, KL, P/E, P/B, ROE, Score">${state.compact ? '⊞ Đầy đủ' : '⊟ Gọn'}</button></div>`;
 }
 const dvMatch = o => !state.dv || (state.dv === 'star' ? state.watch.has(o.ticker) && o.dv && o.dv.k === 'wn' : (o.dv ? o.dv.k : 'na') === state.dv);
