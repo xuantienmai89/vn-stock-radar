@@ -653,7 +653,7 @@ table.compact .x-full{display:none}
   body.pg-radar .work-main > .panel{flex:none;overflow:visible}
   body.pg-stock .work{overflow-y:auto;overflow-x:hidden;grid-template-rows:auto max(380px, calc(100vh - 420px)) max-content}
   body.pg-stock .panel{overflow:visible}
-  body.pg-stock .stk-intra{min-height:300px}
+  body.pg-stock .stk-intra{align-self:start;height:min(360px, calc(100vh - 140px));position:sticky;top:0;z-index:1}   /* v3.7.1: Intraday cao cố định, đứng yên khi cuộn phần phân tích */
   body.pg-stock .work.max{overflow:hidden;grid-template-rows:auto minmax(0,1fr)}
 }
 </style>
@@ -678,7 +678,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.7">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.7.1">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
