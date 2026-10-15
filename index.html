@@ -474,6 +474,7 @@ table.tp-lv,table.tp-tr{width:100%;min-width:0;border-collapse:collapse;font-siz
 .tp-pane{overflow:auto;min-height:0;min-width:0;position:relative;overscroll-behavior:contain}
 .tp-pane+.tp-pane{border-left:1px solid var(--line)}
 .mini tr.on td{background:#1b2440}
+.secmem>td{padding:2px 0 8px 12px!important;background:#0f1420}.memt-wrap{max-height:300px;overflow:auto;border-left:2px solid var(--accent)}.memt{width:100%}.memt td,.memt th{padding:3px 6px}.memt .dv{font-size:11px}
 @media (max-width:1760px){ .bh{display:none!important} }
 @media (max-width:1450px){ .pnav button{padding:7px 9px} .session #sessCount{display:none} }
 @media (max-width:1180px) and (min-width:981px){
@@ -678,7 +679,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.7.1">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.8">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -2397,15 +2398,27 @@ function ovIndexCol(){
   }
   return col1;
 }
+/* v3.8: danh sách cổ phiếu trong ngành (mở ngay dưới dòng ngành ở trang Thị trường) */
+function secMembers(label){
+  const cur = state.pageSym.market || '';
+  const M = state.data.filter(o => o.sector === label).sort((a, b) => ((b.dvo ?? 0) - (a.dvo ?? 0)) || ((b.changePct ?? -99) - (a.changePct ?? -99)));
+  if (!M.length) return `<div class="dim" style="padding:6px 8px">Không có mã nào của ngành này trong phạm vi quét hiện tại (${esc(state.source || '')}).</div>`;
+  return `<div class="memt-wrap"><table class="mini memt"><thead><tr><th>Mã</th><th>Quyết định</th><th class="num">Giá</th><th class="num">%</th><th class="num">Vol/TB20</th><th class="num">RS</th><th class="num">GTGD TB20</th></tr></thead><tbody>
+    ${M.map(o => `<tr class="click ${cur === o.ticker ? 'on' : ''}" data-mem="${esc(o.ticker)}" title="Bấm: xem biểu đồ ${esc(o.ticker)} tại đây · nhấp đúp: mở trang Cổ phiếu"><td><span class="tk ${o.state}">${esc(o.ticker)}</span> <span class="exs">${esc(o.exchange || '')}</span></td>
+      <td>${dvPill(o.dv)}</td><td class="num ${o.state}">${fmtP(o.price)}</td><td class="num ${o.state}">${fmtPct(o.changePct)}</td>
+      <td class="num ${isNum(o.volRatio) && o.volRatio >= 1.5 ? 'hot' : ''}">${isNum(o.volRatio) ? o.volRatio.toFixed(2) + 'x' : '—'}</td>
+      <td class="num"><span class="pill ${rsCls(o.rs)}">${isNum(o.rs) ? o.rs : '—'}</span></td><td class="num">${o.wy && isNum(o.wy.gtgd) ? o.wy.gtgd.toFixed(1) + ' tỷ' : '—'}</td></tr>`).join('')}
+    </tbody></table></div><div class="dim" style="font-size:10.5px;padding:3px 8px 0">${M.length} mã trong phạm vi quét · bấm mã để xem biểu đồ ngay tại đây · nhấp đúp để mở trang Cổ phiếu · bấm lại tên ngành để đóng</div>`;
+}
 function ovSectorCol(wide){
   const {M, pc, pc1} = ovCtx();
   if (M && M.sectors.length) {
     const key = state.secSort, cur = state.pageSym.market || '';
     const secs = M.sectors.filter(s => s.n >= 2).sort((a, b) => key === 'label' ? a.label.localeCompare(b.label, 'vi') : ((isNum(b[key]) ? b[key] : -1e9) - (isNum(a[key]) ? a[key] : -1e9)));
     const th = (k, l, num = true) => `<th class="srt ${num ? 'num' : ''} ${key === k ? 'on' : ''}" data-ssort="${k}">${l}${key === k ? ' ▼' : ''}</th>`;
-    return `<div class="sec-h">Chỉ số ngành · vốn hóa · ${esc(M.scope)} <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">(${wide ? 'bấm ngành → biểu đồ chỉ số ngành' : 'bấm ngành → biểu đồ + lọc'})</span></div>
+    return `<div class="sec-h">Chỉ số ngành · vốn hóa · ${esc(M.scope)} <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">(${wide ? 'bấm ngành → biểu đồ chỉ số ngành + danh sách mã' : 'bấm ngành → biểu đồ + lọc'})</span></div>
     <table class="mini"><thead><tr>${th('label', 'Ngành', false)}${wide ? th('n', 'Số mã') : ''}${th('pct', 'Hôm nay')}${th('r1w', '1T')}${th('r1m', '1Th')}${th('r3m', '3Th')}${th('rs', 'RS')}<th class="num">Tăng/Giảm</th>${wide ? th('val', 'GTGD (tỷ)') + th('mcap', 'Vốn hóa (nghìn tỷ)') : ''}</tr></thead><tbody>
-    ${secs.map(s => `<tr class="click ${wide && cur === '#S:' + s.label ? 'on' : ''}" data-secidx="${esc(s.label)}" title="${esc(s.label)}: ${s.n} mã · GTGD ${fmtX(s.val, 0)} tỷ · vốn hóa ${fmtInt(s.mcap)} tỷ"><td class="lbl">${esc(s.label)}${wide ? '' : ` <span class="dim">${s.n}</span>`}</td>${wide ? `<td class="num">${s.n}</td>` : ''}<td class="num">${pc(s.pct)}</td><td class="num">${pc1(s.r1w)}</td><td class="num">${pc1(s.r1m)}</td><td class="num">${pc1(s.r3m)}</td><td class="num">${isNum(s.rs) ? `<span class="pill ${rsCls(s.rs)}">${s.rs}</span>` : '—'}</td><td class="num"><span class="up">${s.adv}</span>/<span class="down">${s.dec}</span></td>${wide ? `<td class="num">${fmtX(s.val, 0)}</td><td class="num">${isNum(s.mcap) ? (s.mcap / 1000).toFixed(s.mcap >= 1e5 ? 0 : 1) : '—'}</td>` : ''}</tr>`).join('')}
+    ${secs.map(s => (wide && state.mktSecOpen === s.label ? (r => r + `<tr class="secmem"><td colspan="10">${secMembers(s.label)}</td></tr>`) : (r => r))(`<tr class="click ${wide && (cur === '#S:' + s.label || state.mktSecOpen === s.label) ? 'on' : ''}" data-secidx="${esc(s.label)}" title="${esc(s.label)}: ${s.n} mã · GTGD ${fmtX(s.val, 0)} tỷ · vốn hóa ${fmtInt(s.mcap)} tỷ"><td class="lbl">${esc(s.label)}${wide ? '' : ` <span class="dim">${s.n}</span>`}</td>${wide ? `<td class="num">${s.n}</td>` : ''}<td class="num">${pc(s.pct)}</td><td class="num">${pc1(s.r1w)}</td><td class="num">${pc1(s.r1m)}</td><td class="num">${pc1(s.r3m)}</td><td class="num">${isNum(s.rs) ? `<span class="pill ${rsCls(s.rs)}">${s.rs}</span>` : '—'}</td><td class="num"><span class="up">${s.adv}</span>/<span class="down">${s.dec}</span></td>${wide ? `<td class="num">${fmtX(s.val, 0)}</td><td class="num">${isNum(s.mcap) ? (s.mcap / 1000).toFixed(s.mcap >= 1e5 ? 0 : 1) : '—'}</td>` : ''}</tr>`)).join('')}
     </tbody></table>`;
   }
   const secs = sectorStats(state.data).slice(0, wide ? 40 : 12);
@@ -3216,6 +3229,8 @@ function selectIndex(key){
 }
 function showSector(label){
   if (desk() && state.page !== 'radar') {        // trang Cổ phiếu/Thị trường: biểu đồ chỉ số ngành ở trang Thị trường, không lọc Radar
+    const again = state.page === 'market' && state.mktSecOpen === label && state.pageSym.market === '#S:' + label;
+    state.mktSecOpen = again ? null : label;                                       // v3.8: bấm lại → đóng danh sách
     state.pageSym.market = '#S:' + label;
     if (state.page !== 'market') setPage('market'); else { changeSymbol(state.pageSym.market); renderIndices(); renderMarket(); }
     return;
@@ -4247,11 +4262,13 @@ function bindPages(){
   $('#mktPage').addEventListener('click', e => {
     const go = e.target.closest('[data-go]'); if (go) { selectTicker(go.dataset.go); setPage('stock'); return; }
     const ss = e.target.closest('[data-ssort]'); if (ss) { state.secSort = ss.dataset.ssort; saveUI(); renderMarket(); return; }
+    const mem = e.target.closest('[data-mem]'); if (mem) { state.pageSym.market = mem.dataset.mem; changeSymbol(mem.dataset.mem); renderIndices(); renderMarket(); return; }
     const si = e.target.closest('[data-secidx]'); if (si) { showSector(si.dataset.secidx); return; }
     const i2 = e.target.closest('[data-idx2]'); if (i2) { selectIndex(i2.dataset.idx2); return; }
     const sec = e.target.closest('[data-sec]'); if (sec) { setScopeSector(sec.dataset.sec); setPage('radar'); return; }
   });
   $('#tbody').addEventListener('dblclick', e => { const tr = e.target.closest('tr[data-t]'); if (tr && desk()) { selectTicker(tr.dataset.t); setPage('stock'); } });
+  $('#mktPage').addEventListener('dblclick', e => { const m = e.target.closest('[data-mem]'); if (m) { selectTicker(m.dataset.mem); setPage('stock'); } });
   bindStockBar();
   window.addEventListener('popstate', () => { const r = routeFromHash(); if (!r) return; if (r.sym && r.sym !== state.selected) state.selected = r.sym; setPage(r.page, 'none'); });
 }
