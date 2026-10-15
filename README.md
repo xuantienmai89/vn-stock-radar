@@ -18,5 +18,6 @@ Dashboard rà soát thị trường chứng khoán Việt Nam — một file HTM
 - Điện thoại: mở link → Chia sẻ → *Thêm vào Màn hình chính* để dùng như app.
 
 - **Thanh trượt biểu đồ (v3.6)**: dưới biểu đồ Nội bộ và Đa khung có thanh trượt để kéo về quá khứ (nút ⏭ về hiện tại); ở Đa khung cả 4 khung cùng dời về một mốc ngày, kéo chuột trên biểu đồ cũng được.
+- **Màn hình thấp (v3.7)**: trên laptop, phần thông tin dưới biểu đồ (thẻ quyết định, phân tích) hiện đủ chiều cao — lăn chuột ở cột phải để đọc; trang Cổ phiếu: khung Intraday cao cố định, đứng yên khi cuộn.
 
 Không phải khuyến nghị đầu tư.
