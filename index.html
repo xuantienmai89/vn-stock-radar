@@ -679,7 +679,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.8">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.9">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
@@ -1578,7 +1578,8 @@ function accumulate(acc, t, j){
   for (let i = 1; i < j.t.length; i++) {
     const d = new Date(j.t[i] * 1000).toISOString().slice(0, 10);
     if (d === acc.today || !(j.c[i - 1] > 0)) continue;
-    for (const k of keys) { const G = acc.g[k] || (acc.g[k] = {}); const e = G[d] || (G[d] = [0, 0]); e[0] += sh * j.c[i]; e[1] += sh * j.c[i - 1]; }
+    const c = j.c[i], o = j.o[i] > 0 ? j.o[i] : c, h = Math.max(j.h[i] > 0 ? j.h[i] : c, c), l = Math.min(j.l[i] > 0 ? j.l[i] : c, c), val = c * (j.v[i] || 0) / 1e6;
+    for (const k of keys) { const G = acc.g[k] || (acc.g[k] = {}); const e = G[d] || (G[d] = [0, 0, 0, 0, 0, 0]); e[0] += sh * c; e[1] += sh * j.c[i - 1]; e[2] += sh * o; e[3] += sh * h; e[4] += sh * l; e[5] += val; }   // v3.9: nến O/H/L + GTGD cho chỉ số ngành
   }
 }
 function finalizeSeries(acc, vni){
@@ -1586,18 +1587,25 @@ function finalizeSeries(acc, vni){
   Object.values(acc.g).forEach(G => Object.keys(G).forEach(d => dset.add(d)));
   const vmap = {};
   if (vni) vni.t.forEach((t, i) => { const d = new Date(t * 1000).toISOString().slice(0, 10); if (d !== acc.today) { vmap[d] = vni.c[i]; dset.add(d); } });
-  const dates = [...dset].sort(), g = {};
+  const dates = [...dset].sort(), g = {}, gO = {}, gH = {}, gL = {}, gV = {}, r4 = x => x === null ? null : Math.round(x * 1e4) / 1e4;
   Object.entries(acc.g).forEach(([k, G]) => {
-    let lvl = null; g[k] = dates.map(d => { const e = G[d]; if (e && e[1] > 0) lvl = (lvl === null ? 1000 : lvl) * e[0] / e[1]; return lvl === null ? null : Math.round(lvl * 1e4) / 1e4; });
+    const isS = k.startsWith('S:'), O = [], Hh = [], Lw = [], V = [];
+    let lvl = null; g[k] = dates.map(d => {
+      const e = G[d]; let oo = null, hh = null, ll = null, vv = null;
+      if (e && e[1] > 0) { const base = lvl === null ? 1000 : lvl; lvl = base * e[0] / e[1]; if (isS && e.length > 5) { oo = base * e[2] / e[1]; hh = base * e[3] / e[1]; ll = base * e[4] / e[1]; vv = Math.round(e[5] * 100) / 100; } }
+      if (isS) { O.push(r4(oo)); Hh.push(r4(hh)); Lw.push(r4(ll)); V.push(vv); }
+      return lvl === null ? null : r4(lvl);
+    });
+    if (isS) { gO[k] = O; gH[k] = Hh; gL[k] = Lw; gV[k] = V; }
   });
-  return {dates, g, vni:dates.map(d => isNum(vmap[d]) ? vmap[d] : null)};
+  return {dates, g, vni:dates.map(d => isNum(vmap[d]) ? vmap[d] : null), gO, gH, gL, gV};
 }
 
 /* Tính trạng thái thị trường theo bảng giá hiện tại */
 function computeMarket(){
   if (!live.on || !live.board.size) { state.mkt = null; return; }
   const vin = vinSet(), grp = {}, contrib = [];
-  const G = k => grp[k] || (grp[k] = {num:0, den:0, n:0, adv:0, dec:0, ceil:0, floor:0, val:0});
+  const G = k => grp[k] || (grp[k] = {num:0, den:0, n:0, adv:0, dec:0, ceil:0, floor:0, val:0, so:0, sh:0, sl:0});
   const rows = [];
   for (const t of live.mkt) {
     const b = live.board.get(t), sh = sharesOf(t); if (!b || !sh || !(b.ref > 0)) continue;
@@ -1605,7 +1613,8 @@ function computeMarket(){
     const ks = []; if (isH) { ks.push('HOSE', vin.has(t) ? 'VIN' : 'EXVIN'); } if (sec) ks.push('S:' + sec);
     const up = p > b.ref + 1e-9, dn = p < b.ref - 1e-9, ce = isNum(b.ceil) && p >= b.ceil - 1e-9 && up, fl = isNum(b.floor) && p <= b.floor + 1e-9 && dn;
     const val = isNum(b.vol) && isNum(b.avg) ? b.vol * b.avg / 1e6 : 0;
-    ks.forEach(k => { const x = G(k); x.num += sh * p; x.den += sh * b.ref; x.n++; if (up) x.adv++; if (dn) x.dec++; if (ce) x.ceil++; if (fl) x.floor++; x.val += val; });
+    const bo = b.open > 0 ? b.open : p, bh = Math.max(b.high > 0 ? b.high : p, p), bl = Math.min(b.low > 0 ? b.low : p, p);
+    ks.forEach(k => { const x = G(k); x.so += sh * bo; x.sh += sh * bh; x.sl += sh * bl; x.num += sh * p; x.den += sh * b.ref; x.n++; if (up) x.adv++; if (dn) x.dec++; if (ce) x.ceil++; if (fl) x.floor++; x.val += val; });
     if (isH) rows.push({t, sh, p, ref:b.ref});
   }
   const vi = state.idxLive && state.idxLive.VNINDEX, H = grp.HOSE;
@@ -1640,6 +1649,7 @@ function computeMarket(){
                ex:{r1w:retK('EXVIN', exF, 5), r1m:retK('EXVIN', exF, 21), r3m:retK('EXVIN', exF, 63)},
                hose:{r1w:retK('HOSE', hF, 5), r1m:retK('HOSE', hF, 21), r3m:retK('HOSE', hF, 63)},
                factors:Object.fromEntries(Object.entries(grp).map(([k, x]) => [k, x.den > 0 ? x.num / x.den : 1])),
+               secOHLC:Object.fromEntries(Object.entries(grp).filter(([k, x]) => k.startsWith('S:') && x.den > 0).map(([k, x]) => [k, {o:x.so / x.den, h:x.sh / x.den, l:x.sl / x.den, c:x.num / x.den, v:x.val}])),
                scope:live.mktLists.map(l => LIST_EX[l]).filter((v, i, a) => a.indexOf(v) === i).join('+')};
 }
 
@@ -1647,7 +1657,7 @@ function computeMarket(){
 async function loadHistory(g, forceSeries){
   const today = vnDate(), hc = ls.get(LKEY.hist, null), sc = forceSeries ? null : ls.get(LKEY.series, null), key = seriesKey();
   if (!Object.keys(live.prior).length) live.prior = hc && hc.date === today && hc.map ? hc.map : {};
-  live.series = sc && sc.date === today && sc.key === key ? sc.s : null;
+  live.series = sc && sc.date === today && sc.key === key && sc.s && sc.s.gH ? sc.s : null;   // v3.9: cache cũ chưa có nến ngành → dựng lại
   const needSeries = !live.series;
   const uni = new Set(live.tickers);
   const need = needSeries ? live.mkt.concat(['VNINDEX']) : live.mkt.filter(t => !live.prior[t] || (uni.has(t) && !live.bars[t]));
@@ -2473,7 +2483,7 @@ function changeSymbol(ticker){
   if (state.pageSym) state.pageSym[state.page] = raw.startsWith('#') ? raw : raw.toUpperCase();
   if (raw.startsWith('#')) {
     state.chartSymbol = raw;
-    if (state.chartMode !== 'sim') { state._restoreMode = state.chartMode; setChartMode('sim'); return; }
+    if (state.chartMode !== 'sim' && !(state.chartMode === 'mtf' && raw.startsWith('#S:'))) { state._restoreMode = state.chartMode; setChartMode('sim'); return; }
     const [a, b] = synthLabel(raw); $('#chartTicker').textContent = a; $('#chartName').textContent = b;
     syncTfBtns(); drawSim(); return;
   }
@@ -2550,7 +2560,7 @@ function syncScroll(){
   const on = state.chartMode === 'sim' || state.chartMode === 'mtf';
   if (!on) { el.hidden = true; return; }
   let max = 0, val = 0, min = 0, lbl = '';
-  if (state.chartMode === 'mtf') {
+  if (mtfLike()) {
     const R = live.mtf && live.mtf.get(state.chartSymbol);
     if (R && typeof R === 'object' && R.D) { const n = R.D.c.length, e = mtfEndIdx(R.D, 'Ngày'); min = Math.min(60, n); max = n; val = e; lbl = e >= n ? 'Hiện tại' : ddmmyy(R.D.d[e - 1]); }
   } else {
@@ -2571,6 +2581,7 @@ function drawSim0(){
   g.fillStyle = '#0d1119'; g.fillRect(0, 0, W, H);
   const sym = state.chartSymbol, o = bySym(sym);
   const msg = t => { g.textAlign = 'center'; g.font = '12px Inter, Arial, sans-serif'; g.fillStyle = '#9ca3af'; g.fillText(t, W / 2, H / 2); };
+  if (sym.startsWith('#S:')) { drawSectorVSA(g, W, H, sym, msg); return; }
   if (sym.startsWith('#')) { drawSynthetic(g, W, H, sym, msg); return; }
   if (live.on) {
     const LS = chartSeries(sym);                                  // toàn bộ lịch sử (tải 1 lần khi mở)
@@ -2605,6 +2616,15 @@ function drawSim0(){
   if (!o || !isNum(o.price)) { msg('Chế độ mô phỏng chỉ áp dụng cho cổ phiếu trong universe — chọn một mã ở Radar.'); return; }
   const gb = genBars(o), GB = {d:gb.map(() => ''), o:gb.map(b => b.open), h:gb.map(b => b.high), l:gb.map(b => b.low), c:gb.map(b => b.close), v:gb.map(b => b.vol)};
   drawCandles(g, W, H, buildStatic(GB, GB.c.length), o.ticker, o.price, o.state, 'DỮ LIỆU MÔ PHỎNG – chỉ minh họa, không phải lịch sử giá thực', '#f23645');
+}
+function drawSectorVSA(g, W, H, sym, msg){
+  state._geo = null; state._mtf = [];
+  if (!live.on) return msg('Chỉ số ngành cần dữ liệu Live — chọn HOSE · Live ở ô phạm vi quét.');
+  const R = mtfData(sym);
+  if (R === 'wait') return msg('Đang dựng nến chỉ số ngành từ lịch sử giá…');
+  if (R === 'fail' || !R) return msg('Chưa đủ dữ liệu nến cho ' + sym.replace('#S:', 'ngành '));
+  mtfVSA(g, {x:0, y:0, w:W, h:H}, R, 'Ngành ' + sym.slice(3), W < 700);
+  mtfHover(g);
 }
 function drawSynthetic(g, W, H, sym, msg){
   const S = live.series, M = state.mkt;
@@ -2807,6 +2827,7 @@ function tfSeries(sym, tf, D, part){                      // gộp nến ngày (
 function syncTfBtns(){
   const k = simKey(), el = $('#simTf'), rg = $('#simRange');
   if (el) { el.hidden = state.chartMode !== 'sim' || k === 'S' || !live.on; el.querySelectorAll('[data-tf]').forEach(b => b.classList.toggle('on', b.dataset.tf === state.simTf)); }
+  if (rg) rg.hidden = state.chartMode !== 'sim' || String(state.chartSymbol || '').startsWith('#S:');
   if (rg && rg.dataset.k !== k) { rg.dataset.k = k; rg.innerHTML = (TF_RANGES[k] || RANGES).map(([v, l, t]) => `<button data-rg="${v}" title="Xem ${t}">${l}</button>`).join(''); }
   syncRangeBtns();
 }
@@ -2864,7 +2885,7 @@ function bindSimNav(){
   const scrIn = $('#chartScrollIn');
   scrIn.addEventListener('input', () => {
     state._scrDrag = true; const v = +scrIn.value;
-    if (state.chartMode === 'mtf') { const R = live.mtf && live.mtf.get(state.chartSymbol); if (!R || !R.D) return; const n = R.D.c.length; state.mtfEnd = v >= n ? null : R.D.d[Math.max(0, v - 1)]; }
+    if (mtfLike()) { const R = live.mtf && live.mtf.get(state.chartSymbol); if (!R || !R.D) return; const n = R.D.c.length; state.mtfEnd = v >= n ? null : R.D.d[Math.max(0, v - 1)]; }
     else { const G = state._geo; if (!G) return; state.simOff = clamp((G.n - G.win) - v, 0, G.n - G.win); }
     state.simHx = null; simRedraw();
   });
@@ -2886,10 +2907,10 @@ function bindSimNav(){
     state.simWin = nw; state.simOff = G.n - (s0 + nw); simRedraw(); syncRangeBtns();
     clearTimeout(state._svT); state._svT = setTimeout(saveUI, 400);
   };
-  cv.addEventListener('wheel', e => { e.preventDefault(); if (state.chartMode === 'mtf') { state.mtfZ = clamp((state.mtfZ || 1) * (e.deltaY > 0 ? 1.15 : 1 / 1.15), 0.35, 5); simRedraw(); return; } const r = cv.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.deltaY > 0 ? 1.18 : 1 / 1.18); }, {passive:false});
+  cv.addEventListener('wheel', e => { e.preventDefault(); if (mtfLike()) { state.mtfZ = clamp((state.mtfZ || 1) * (e.deltaY > 0 ? 1.15 : 1 / 1.15), 0.35, 5); simRedraw(); return; } const r = cv.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.deltaY > 0 ? 1.18 : 1 / 1.18); }, {passive:false});
   let drag = null;
   cv.addEventListener('mousedown', e => {
-    if (state.chartMode === 'mtf' && e.button === 0) {                         // v3.6: kéo chuột để xem quá khứ ở Đa khung
+    if (mtfLike() && e.button === 0) {                         // v3.6: kéo chuột để xem quá khứ ở Đa khung
       const R = live.mtf && live.mtf.get(state.chartSymbol), Q = (state._mtf || [])[0]; if (!R || !R.D || !Q) return;
       drag = {mtf:true, x:e.clientX, e0:mtfEndIdx(R.D, 'Ngày'), cw:Q.F.cw, n:R.D.c.length, R}; cv.style.cursor = 'grabbing'; e.preventDefault(); return;
     }
@@ -2906,7 +2927,7 @@ function bindSimNav(){
   cv.addEventListener('dblclick', () => { state.simOff = 0; state.mtfZ = 1; state.mtfEnd = null; simRedraw(); });
   let t0 = null;
   cv.addEventListener('touchstart', e => {
-    if (state.chartMode === 'mtf') {                                               // v3.6: Đa khung trên điện thoại — 1 ngón kéo, 2 ngón phóng to/thu nhỏ
+    if (mtfLike()) {                                               // v3.6: Đa khung trên điện thoại — 1 ngón kéo, 2 ngón phóng to/thu nhỏ
       const R = live.mtf && live.mtf.get(state.chartSymbol), Q = (state._mtf || [])[0]; if (!R || !R.D || !Q) return;
       if (e.touches.length === 1) t0 = {m:'mpan', x:e.touches[0].clientX, e0:mtfEndIdx(R.D, 'Ngày'), cw:Q.F.cw, n:R.D.c.length, R};
       else if (e.touches.length === 2) t0 = {m:'mzoom', d:Math.abs(e.touches[0].clientX - e.touches[1].clientX) || 1, z:state.mtfZ || 1};
@@ -2940,6 +2961,7 @@ function bindSimNav(){
    Lăn chuột: phóng to/thu nhỏ cả 4 khung · nhấp đúp: về mặc định · rê chuột: đọc O/H/L/C/V.
    ========================================================================= */
 const isCanvasMode = () => state.chartMode === 'sim' || state.chartMode === 'mtf';
+const mtfLike = () => state.chartMode === 'mtf' || (state.chartMode === 'sim' && String(state.chartSymbol || '').startsWith('#S:'));
 function emaArr(A, p){ const k = 2 / (p + 1), out = new Array(A.length); let e = null; for (let i = 0; i < A.length; i++) { e = e === null ? A[i] : A[i] * k + e * (1 - k); out[i] = e; } return out; }
 function bollArr(C, p, m){
   const up = new Array(C.length).fill(null), dn = new Array(C.length).fill(null); let s = 0, s2 = 0;
@@ -2961,18 +2983,32 @@ function resampleBars(B, mode){
   return {o, h, l, c, v, d};
 }
 function mtfStates(S){ if (!S || S.c.length < 31) return null; try { const r = techSignals(Object.assign({i:S.c.length - 1}, S)); return r ? r.I : null; } catch (e) { return null; } }
+/* v3.9: nến ngày chỉ số ngành (vốn hóa, chain-link) — O/H/L/C từ tổng các mã, "khối lượng" = GTGD (tỷ) */
+function sectorBars(label){
+  const S = live.series; if (!S) return 'wait'; if (!S.gH) return 'fail';
+  const k = 'S:' + label, C = S.g[k], O = S.gO[k], H = S.gH[k], L = S.gL[k], V = S.gV[k]; if (!C || !O) return 'fail';
+  const B = {d:[], o:[], h:[], l:[], c:[], v:[], live:false};
+  for (let i = 0; i < C.length; i++) if (isNum(C[i]) && isNum(O[i]) && isNum(H[i]) && isNum(L[i])) { B.d.push(S.dates[i]); B.o.push(O[i]); B.h.push(H[i]); B.l.push(L[i]); B.c.push(C[i]); B.v.push(V[i] || 0); }
+  const M = state.mkt, f = M && M.appendToday && M.secOHLC && M.secOHLC[k], n = B.c.length;
+  if (f && n) { const p = B.c[n - 1]; B.d.push(vnDate()); B.o.push(p * f.o); B.h.push(p * f.h); B.l.push(p * f.l); B.c.push(p * f.c); B.v.push(f.v || 0); B.live = true; }
+  return B.c.length >= 30 ? B : 'fail';
+}
 function mtfData(sym){
-  const LS = chartSeries(sym);
-  let D = LS && LS !== 'wait' && LS !== 'fail' ? LS : null, part = false;
-  if (!D && live.bars[sym]) { D = techSeries(sym); part = true; }
-  if (!D) return LS === 'fail' ? 'fail' : 'wait';
+  let D = null, part = false, LS = null;
+  if (sym.startsWith('#S:')) { const B = sectorBars(sym.slice(3)); if (typeof B === 'string') return B; D = B; }
+  else {
+    LS = chartSeries(sym);
+    D = LS && LS !== 'wait' && LS !== 'fail' ? LS : null;
+    if (!D && live.bars[sym]) { D = techSeries(sym); part = true; }
+    if (!D) return LS === 'fail' ? 'fail' : 'wait';
+  }
   const n = D.c.length, sig = [sym, n, D.c[n - 1], D.v[n - 1], D.h[n - 1], D.l[n - 1], D.d[n - 1]].join('|');
   const M = live.mtf || (live.mtf = new Map()), old = M.get(sym);
   if (old && old.sig === sig) return old;
   const raw = {o:D.o.slice(0, n), h:D.h.slice(0, n), l:D.l.slice(0, n), c:D.c.slice(0, n), v:D.v.slice(0, n), d:D.d.slice(0, n)};
   const Ds = buildStatic(raw, n), wk = resampleBars(raw, 'W'), mo = resampleBars(raw, 'M');
   const Ws = buildStatic(wk, wk.c.length), Ms = buildStatic(mo, mo.c.length), bb = bollArr(raw.c, 20, 2);
-  const R = {sig, part, D:Ds, W:Ws, M:Ms, e6:emaArr(raw.c, 6), e10:emaArr(raw.c, 10), ma200:rollMA(raw.c, 200), bbU:bb.up, bbL:bb.dn, mv5:rollMA(raw.v, 5),
+  const R = {sig, part, vUnit:sym.startsWith('#S:') ? 'tỷ' : '', D:Ds, W:Ws, M:Ms, e6:emaArr(raw.c, 6), e10:emaArr(raw.c, 10), ma200:rollMA(raw.c, 200), bbU:bb.up, bbL:bb.dn, mv5:rollMA(raw.v, 5),
              sD:mtfStates(Ds), sW:mtfStates(Ws), sM:mtfStates(Ms)};
   M.set(sym, R); while (M.size > 6) M.delete(M.keys().next().value);
   return R;
@@ -2987,7 +3023,7 @@ function drawMTF(){
   g.fillStyle = '#0d1119'; g.fillRect(0, 0, W, H); state._geo = null; state._mtf = [];
   const sym = state.chartSymbol;
   const msg = t => { g.textAlign = 'center'; g.font = '12px Inter, Arial, sans-serif'; g.fillStyle = '#9ca3af'; g.fillText(t, W / 2, H / 2); };
-  if (sym.startsWith('#')) return msg('Đa khung chỉ áp dụng cho cổ phiếu / chỉ số có nến ngày.');
+  if (sym.startsWith('#') && !sym.startsWith('#S:')) return msg('Đa khung chỉ áp dụng cho cổ phiếu / chỉ số / ngành có nến ngày.');
   if (!live.on) return msg('Đa khung cần dữ liệu Live (chọn HOSE · Live).');
   const R = mtfData(sym);
   if (R === 'wait') return msg('Đang tải toàn bộ lịch sử giá ' + sym + '…');
@@ -2997,10 +3033,11 @@ function drawMTF(){
     : [{x:0, y:0, w:W / 2 - gp / 2, h:H / 2 - gp / 2}, {x:W / 2 + gp / 2, y:0, w:W / 2 - gp / 2, h:H / 2 - gp / 2},
        {x:0, y:H / 2 + gp / 2, w:W / 2 - gp / 2, h:H / 2 - gp / 2}, {x:W / 2 + gp / 2, y:H / 2 + gp / 2, w:W / 2 - gp / 2, h:H / 2 - gp / 2}];
   g.fillStyle = '#2a303b'; if (narrow) [1, 2, 3].forEach(i => g.fillRect(0, i * H / 4 - gp, W, gp)); else { g.fillRect(W / 2 - gp / 2, 0, gp, H); g.fillRect(0, H / 2 - gp / 2, W, gp); }
-  mtfVSA(g, rc[0], R, sym, narrow);
-  mtfIchi(g, rc[1], R.W, R.sW, sym, 'Tuần', narrow, false);
-  mtfIchi(g, rc[2], R.D, R.sD, sym, 'Ngày', narrow, false);
-  mtfIchi(g, rc[3], R.M, R.sM, sym, 'Tháng', narrow, true);
+  const nm = sym.startsWith('#S:') ? 'Ngành ' + sym.slice(3) : sym;
+  mtfVSA(g, rc[0], R, nm, narrow);
+  mtfIchi(g, rc[1], R.W, R.sW, nm, 'Tuần', narrow, false);
+  mtfIchi(g, rc[2], R.D, R.sD, nm, 'Ngày', narrow, false);
+  mtfIchi(g, rc[3], R.M, R.sM, nm, 'Tháng', narrow, true);
   if (R.part) { g.fillStyle = '#f5a623'; g.font = '10px Inter, Arial, sans-serif'; g.textAlign = 'right'; g.fillText('đang tải lịch sử dài — tạm dùng 300 phiên', W - 6, H - 4); }
   mtfHover(g);
 }
@@ -3115,9 +3152,10 @@ function mtfVSA(g, P, R, sym, narrow){
   mtfTags(g, F, [[S.c[i], S.c[i] >= S.c[i - 1] ? '#22c55e' : '#f23645'], [R.e6[i], MTF_C.e6], [R.e10[i], MTF_C.e10], [S.ma50[i], MTF_C.ma50], [R.ma200[i], MTF_C.ma200]]);
   const chg = i ? (S.c[i] / S.c[i - 1] - 1) * 100 : 0, f = v => isNum(v) ? fmtP(v) : '—';
   const L1 = [[sym + ' · Ngày · VSA  ', '#fff', true], [ddmmyy(S.d[i]) + '  ', '#9ca3af'], ['O ' + f(S.o[i]) + ' H ' + f(S.h[i]) + ' L ' + f(S.l[i]) + ' C ' + f(S.c[i]) + ' ', '#e5e7eb'], [(chg >= 0 ? '+' : '') + chg.toFixed(1) + '%', chg >= 0 ? '#3ff0a6' : '#ff7b86']];
-  const L2 = [['EMA6 ' + f(R.e6[i]) + '  ', MTF_C.e6], ['EMA10 ' + f(R.e10[i]) + '  ', MTF_C.e10], ['MA50 ' + f(S.ma50[i]) + '  ', MTF_C.ma50], ['MA200 ' + f(R.ma200[i]) + '  ', MTF_C.ma200], [(P.w < 640 ? 'KL ' : 'BB20 · KL ') + fmtVol(S.v[i]) + (P.w < 520 ? ' · V20 ' : ' · MA V20 ') + fmtVol(S.mav20[i]) + (P.w < 520 ? ' · V5 ' : ' · MA V5 ') + fmtVol(R.mv5[i]), '#9ca3af']];
+  const fv = R.vUnit ? (x => isNum(x) ? 'GT ' + x.toFixed(0) + ' tỷ' : '—') : (x => 'KL ' + fmtVol(x));
+  const L2 = [['EMA6 ' + f(R.e6[i]) + '  ', MTF_C.e6], ['EMA10 ' + f(R.e10[i]) + '  ', MTF_C.e10], ['MA50 ' + f(S.ma50[i]) + '  ', MTF_C.ma50], ['MA200 ' + f(R.ma200[i]) + '  ', MTF_C.ma200], [(P.w < 640 ? '' : 'BB20 · ') + fv(S.v[i]) + (P.w < 520 ? ' · V20 ' : ' · MA V20 ') + fmtVol(S.mav20[i]) + (P.w < 520 ? ' · V5 ' : ' · MA V5 ') + fmtVol(R.mv5[i]), '#9ca3af']];
   mtfHead(g, P, narrow ? [L1] : [L1, L2]);
-  state._mtf.push({P, F, S, tf:'Ngày'});
+  state._mtf.push({P, F, S, tf:'Ngày', vUnit:R.vUnit});
   g.restore();
 }
 function mtfIchi(g, P, S, I, sym, tf, narrow, monthly){
@@ -3154,7 +3192,7 @@ function mtfIchi(g, P, S, I, sym, tf, narrow, monthly){
   }
   mtfTags(g, F, [[S.c[i], S.c[i] >= S.c[i - 1] ? '#22c55e' : '#f23645'], [S.tk[i], MTF_C.tk, '#fff'], [S.kj[i], MTF_C.kj, '#fff'], [S.kn[i], MTF_C.kn], [S.kn2[i], MTF_C.kn2]]);
   const f = v => isNum(v) ? fmtP(v) : '—', chg = i ? (S.c[i] / S.c[i - 1] - 1) * 100 : 0;
-  const L1 = [[sym + ' · ' + tf + ' · Ichimoku  ', '#fff', true], [ddmmyy(S.d[i]) + '  ', '#9ca3af'], ['O ' + f(S.o[i]) + ' H ' + f(S.h[i]) + ' L ' + f(S.l[i]) + ' C ' + f(S.c[i]) + ' ', '#e5e7eb'], [(chg >= 0 ? '+' : '') + chg.toFixed(1) + '%', chg >= 0 ? '#3ff0a6' : '#ff7b86'], ['  KL ' + fmtVol(S.v[i]), '#9ca3af']];
+  const L1 = [[sym + ' · ' + tf + ' · Ichimoku  ', '#fff', true], [ddmmyy(S.d[i]) + '  ', '#9ca3af'], ['O ' + f(S.o[i]) + ' H ' + f(S.h[i]) + ' L ' + f(S.l[i]) + ' C ' + f(S.c[i]) + ' ', '#e5e7eb'], [(chg >= 0 ? '+' : '') + chg.toFixed(1) + '%', chg >= 0 ? '#3ff0a6' : '#ff7b86'], [secV(S.v[i]), '#9ca3af']];
   const L2 = monthly
     ? [['Tenkan ' + f(S.tk[i]) + '  ', MTF_C.tk], ['Kijun ' + f(S.kj[i]) + '  ', MTF_C.kj], ['D1 ' + f(S.kn[i]) + '  ', MTF_C.kn], ['D2 ' + f(S.kn2[i]) + '  ', MTF_C.kn2], ['| Khoảng cách D1: ', '#9ca3af'], [mtfPct(S.c[i], S.kn[i]), MTF_C.kn], ['  Kijun: ', '#9ca3af'], [mtfPct(S.c[i], S.kj[i]), MTF_C.kj]]
     : [['TK9 ' + f(S.tk[i]) + '  ', MTF_C.tk], ['KJ17 ' + f(S.kj[i]) + '  ', MTF_C.kj], ['DG65 ' + f(S.kn[i]) + '  ', MTF_C.kn], ['DG129 ' + f(S.kn2[i]) + '  ', MTF_C.kn2], ['| C-DG65: ', '#9ca3af'], [mtfPct(S.c[i], S.kn[i]), '#e5e7eb'], ['  C-KJ: ', '#9ca3af'], [mtfPct(S.c[i], S.kj[i]), '#e5e7eb']];
@@ -3167,14 +3205,15 @@ function mtfIchi(g, P, S, I, sym, tf, narrow, monthly){
       : [['B1 Xu hướng: ', '#93c5fd'], T, [' | B2 2 kiếm: ', '#93c5fd'], B2, [' | B3 Đường trẻ: ', '#93c5fd'], B3];
   }
   mtfHead(g, P, narrow ? [L1.slice(0, 2).concat([[' ' + (I && I.trend ? {up:'▲ TĂNG', down:'▼ GIẢM', side:'■ TÍCH LŨY'}[I.trend] : ''), I && I.trend === 'up' ? '#3ff0a6' : I && I.trend === 'down' ? '#ff7b86' : '#facc15', true]])] : [L1, L2, L3]);
-  state._mtf.push({P, F, S, tf});
+  state._mtf.push({P, F, S, tf, vUnit:String(state.chartSymbol || '').startsWith('#S:') ? 'tỷ' : ''});
   g.restore();
 }
+const secV = x => String(state.chartSymbol || '').startsWith('#S:') ? '  GT ' + (isNum(x) ? x.toFixed(0) + ' tỷ' : '—') : '  KL ' + fmtVol(x);
 const ddmmyy = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
 function mtfHover(g){
   const hx = state.simHx, hy = state.simHy; if (!isNum(hx) || !isNum(hy)) return;
   const Q = (state._mtf || []).find(q => hx >= q.F.plotX && hx <= q.F.plotX + q.F.plotW && hy >= q.P.y && hy <= q.P.y + q.P.h); if (!Q) return;
-  const {F, S, P} = Q, k = F.s0 + Math.floor((hx - F.plotX) / F.cw); if (k < F.s0 || k >= F.end) return;
+  const {F, S, P} = Q, k = F.s0 + Math.floor((hx - F.plotX) / F.cw); if (k < F.s0 || k >= F.end) return; const vtx = Q.vUnit ? (isNum(S.v[k]) ? S.v[k].toFixed(0) + ' tỷ' : '—') : fmtVol(S.v[k]);
   const xx = Math.round(F.x(k)) + 0.5, d0 = S.d[k];
   const keyOf = tf => tf === 'Tuần' ? weekKey : tf === 'Tháng' ? (d => d.slice(0, 7)) : (d => d);
   (state._mtf || []).forEach(Q2 => {                                              // v3.6: đường dọc đồng bộ cùng thời điểm ở các khung khác
@@ -3187,7 +3226,7 @@ function mtfHover(g){
   g.save(); g.beginPath(); g.rect(P.x, P.y, P.w, P.h); g.clip();
   g.strokeStyle = 'rgba(255,255,255,.3)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(xx, F.top); g.lineTo(xx, F.bottom); g.stroke(); g.setLineDash([]);
   const pc = k > 0 ? (S.c[k] / S.c[k - 1] - 1) * 100 : null;
-  const t = `${ddmmyy(S.d[k])}  O ${fmtP(S.o[k])} H ${fmtP(S.h[k])} L ${fmtP(S.l[k])} C ${fmtP(S.c[k])}${isNum(pc) ? ' ' + (pc > 0 ? '+' : '') + pc.toFixed(1) + '%' : ''}  V ${fmtVol(S.v[k])}`;
+  const t = `${ddmmyy(S.d[k])}  O ${fmtP(S.o[k])} H ${fmtP(S.h[k])} L ${fmtP(S.l[k])} C ${fmtP(S.c[k])}${isNum(pc) ? ' ' + (pc > 0 ? '+' : '') + pc.toFixed(1) + '%' : ''}  ${Q.vUnit ? 'GT' : 'V'} ${vtx}`;
   g.font = '10px JetBrains Mono, monospace'; const tw = g.measureText(t).width + 10;
   g.fillStyle = 'rgba(22,26,36,.94)'; g.fillRect(F.plotX + 2, F.top + 2, tw, 16); g.fillStyle = isNum(pc) ? (pc > 0 ? '#3ff0a6' : pc < 0 ? '#ff7b86' : '#f5a623') : '#e5e7eb'; g.textAlign = 'left'; g.fillText(t, F.plotX + 7, F.top + 13);
   g.restore();

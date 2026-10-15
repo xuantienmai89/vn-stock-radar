@@ -19,6 +19,6 @@ Dashboard rà soát thị trường chứng khoán Việt Nam — một file HTM
 
 - **Thanh trượt biểu đồ (v3.6)**: dưới biểu đồ Nội bộ và Đa khung có thanh trượt để kéo về quá khứ (nút ⏭ về hiện tại); ở Đa khung cả 4 khung cùng dời về một mốc ngày, kéo chuột trên biểu đồ cũng được.
 - **Màn hình thấp (v3.7)**: trên laptop, phần thông tin dưới biểu đồ (thẻ quyết định, phân tích) hiện đủ chiều cao — lăn chuột ở cột phải để đọc; trang Cổ phiếu: khung Intraday cao cố định, đứng yên khi cuộn.
-- **Ngành ở trang Thị trường (v3.8)**: bấm một ngành trong bảng Chỉ số ngành → biểu đồ chuyển sang chỉ số ngành và danh sách cổ phiếu của ngành mở ngay dưới dòng đó (quyết định, giá, %, Vol/TB20, RS, GTGD); bấm mã để xem biểu đồ mã tại chỗ, nhấp đúp để mở trang Cổ phiếu, bấm lại tên ngành để đóng.
+- **Ngành ở trang Thị trường (v3.8)**: bấm một ngành trong bảng Chỉ số ngành → biểu đồ chuyển sang nến chỉ số ngành dạng VSA (v3.9: O/H/L/C gộp vốn hóa từ các mã trong ngành, cột khối lượng = GTGD tỷ đồng; có EMA6/10, MA50/200, BB, volume profile, mũi tên VSA; ở Đa khung có thêm Tuần/Ngày Ichimoku) và danh sách cổ phiếu của ngành mở ngay dưới dòng đó (quyết định, giá, %, Vol/TB20, RS, GTGD); bấm mã để xem biểu đồ mã tại chỗ, nhấp đúp để mở trang Cổ phiếu, bấm lại tên ngành để đóng.
 
 Không phải khuyến nghị đầu tư.
