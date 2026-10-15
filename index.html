@@ -645,6 +645,17 @@ table.compact .x-full{display:none}
   body.pg-stock .stkbar{padding:4px 10px}
   body.pg-stock .chart-bar{padding:3px 10px}
 }
+/* v3.7 · màn hình thấp: phần thông tin dưới biểu đồ không bị ép — biểu đồ giữ chiều cao hợp lý, phần dưới hiện đủ, cuộn để đọc */
+@media (min-width:981px){
+  body.pg-radar .work-main{overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+  body.pg-radar .work-main > .chart-panel{flex:0 0 auto;height:max(380px, calc(100% - 270px))}
+  body.pg-radar .work.max .work-main > .chart-panel{height:100%}
+  body.pg-radar .work-main > .panel{flex:none;overflow:visible}
+  body.pg-stock .work{overflow-y:auto;overflow-x:hidden;grid-template-rows:auto max(380px, calc(100vh - 420px)) max-content}
+  body.pg-stock .panel{overflow:visible}
+  body.pg-stock .stk-intra{min-height:300px}
+  body.pg-stock .work.max{overflow:hidden;grid-template-rows:auto minmax(0,1fr)}
+}
 </style>
 </head>
 <body>
@@ -667,7 +678,7 @@ table.compact .x-full{display:none}
 <header class="top">
   <div class="brand">
     <div class="logo">R</div>
-    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.6">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
+    <div><div class="title">VN-STOCK RADAR</div><div class="sub" title="VN-Stock Radar v3.7">By Mai Xuân Tiến</div><div class="contact"><a href="mailto:xuantienmai@gmail.com" title="Gửi email">✉ xuantienmai@gmail.com</a><a href="tel:+84906252238" title="Gọi điện">☎ 0906.252.238</a></div></div>
   </div>
   <nav class="pnav" id="pnav" aria-label="Trang">
     <button data-pg="radar" class="on" title="Bộ lọc & bảng mã (phím 1)">☰ Radar</button>
